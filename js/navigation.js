@@ -1,0 +1,218 @@
+class NavigationSystem {
+    constructor() {
+        this.currentPage = 'home';
+        this.pages = {
+            'portfolio': {
+                title: '포트폴리오',
+                content: '<h1 style="font-size: 3em; color: #667eea;">Hello World</h1>'
+            },
+            'resume': {
+                title: '이력서',
+                content: '<h1 style="font-size: 3em; color: #667eea;">이력서 페이지</h1><p>여기에 이력서 내용이 표시됩니다.</p>'
+            },
+            'skills': {
+                title: '기술스택',
+                content: '<h1 style="font-size: 3em; color: #667eea;">기술스택 페이지</h1><p>여기에 기술스택 내용이 표시됩니다.</p>'
+            },
+            'blog': {
+                title: '기술블로그',
+                content: '' // 동적으로 로드됨
+            }
+        };
+    }
+
+    navigateToPage(pageName) {
+        if (!this.pages[pageName]) {
+            console.error(`페이지 '${pageName}'을 찾을 수 없습니다.`);
+            return;
+        }
+
+        this.currentPage = pageName;
+        
+        // 메인 컨테이너 숨기기
+        const mainContainer = document.querySelector('.container');
+        const pageContent = document.getElementById('page-content');
+        const pageBody = document.getElementById('page-body');
+        const chatContainer = document.getElementById('chat-container');
+
+        // 페이지 전환 애니메이션
+        mainContainer.style.transition = 'opacity 0.3s ease';
+        mainContainer.style.opacity = '0';
+
+        setTimeout(() => {
+            mainContainer.style.display = 'none';
+            
+            // 페이지 콘텐츠 설정
+            if (pageName === 'blog') {
+                // 블로그 페이지는 동적으로 콘텐츠 생성
+                pageBody.innerHTML = this.getBlogContent();
+            } else {
+                pageBody.innerHTML = this.pages[pageName].content;
+            }
+            document.title = `${this.pages[pageName].title} - 김동휘 포트폴리오`;
+            
+            // 페이지 콘텐츠 표시
+            pageContent.style.display = 'block';
+            pageContent.style.opacity = '0';
+            pageContent.style.transition = 'opacity 0.3s ease';
+            
+            setTimeout(() => {
+                pageContent.style.opacity = '1';
+                // 플로팅 버튼 표시 (메인 페이지가 아닐 때만)
+                const chatFloatBtn = document.getElementById('chat-float-btn');
+                chatFloatBtn.style.display = 'flex';
+            }, 50);
+        }, 300);
+    }
+
+    goHome() {
+        this.currentPage = 'home';
+        
+        const mainContainer = document.querySelector('.container');
+        const pageContent = document.getElementById('page-content');
+        const chatContainer = document.getElementById('chat-container');
+
+        // 페이지 콘텐츠 숨기기
+        pageContent.style.transition = 'opacity 0.3s ease';
+        pageContent.style.opacity = '0';
+
+        setTimeout(() => {
+            pageContent.style.display = 'none';
+            chatContainer.style.display = 'none'; // 채팅창 숨기기
+            chatContainer.classList.remove('active'); // 활성 클래스 제거
+            
+            // 플로팅 버튼도 숨기기 (메인 페이지에서는 플로팅 버튼도 숨김)
+            const chatFloatBtn = document.getElementById('chat-float-btn');
+            chatFloatBtn.style.display = 'none';
+            
+            // 메인 페이지 표시
+            mainContainer.style.display = 'flex';
+            mainContainer.style.opacity = '0';
+            
+            setTimeout(() => {
+                mainContainer.style.opacity = '1';
+                document.title = '김동휘 포트폴리오';
+            }, 50);
+        }, 300);
+    }
+
+    getBlogContent() {
+        return `
+            <div class="blog-container">
+                <div class="blog-header">
+                    <h1>기술블로그</h1>
+                    <button class="new-post-btn" onclick="createNewPost()">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                        </svg>
+                        새 글 작성
+                    </button>
+                </div>
+                <div class="blog-posts" id="blog-posts">
+                    ${this.getBlogPosts()}
+                </div>
+            </div>
+        `;
+    }
+
+    getBlogPosts() {
+        const posts = this.getStoredPosts();
+        
+        if (!posts || posts.length === 0) {
+            return `
+                <div class="empty-state">
+                    <h3>아직 작성된 글이 없습니다</h3>
+                    <p>첫 번째 기술 블로그 글을 작성해보세요!</p>
+                </div>
+            `;
+        }
+
+        return posts.map(post => `
+            <article class="blog-post" onclick="viewPost('${post.id}')">
+                <div class="post-meta">
+                    <span class="post-date">${new Date(post.createdAt).toLocaleDateString('ko-KR')}</span>
+                    <div class="post-actions">
+                        <button onclick="editPost('${post.id}'); event.stopPropagation();" class="edit-btn">편집</button>
+                        <button onclick="deletePost('${post.id}'); event.stopPropagation();" class="delete-btn">삭제</button>
+                    </div>
+                </div>
+                <h2 class="post-title">${post.title}</h2>
+                <p class="post-excerpt">${post.excerpt}</p>
+                <div class="post-tags">
+                    ${post.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+            </article>
+        `).join('');
+    }
+
+    getStoredPosts() {
+        try {
+            return JSON.parse(localStorage.getItem('blog-posts') || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+}
+
+// 전역 네비게이션 인스턴스
+const navigation = new NavigationSystem();
+
+// 전역 함수들
+function navigateToPage(pageName) {
+    navigation.navigateToPage(pageName);
+}
+
+function goHome() {
+    navigation.goHome();
+}
+
+// 블로그 관련 전역 함수들
+function createNewPost() {
+    if (window.blogManager) {
+        window.blogManager.createNewPost();
+    }
+}
+
+function editPost(postId) {
+    if (window.blogManager) {
+        window.blogManager.editPost(postId);
+    }
+}
+
+function deletePost(postId) {
+    if (window.blogManager) {
+        window.blogManager.deletePost(postId);
+    }
+}
+
+function viewPost(postId) {
+    if (window.blogManager) {
+        window.blogManager.viewPost(postId);
+    }
+}
+
+function savePost() {
+    if (window.blogManager) {
+        window.blogManager.savePost();
+    }
+}
+
+function cancelEdit() {
+    if (window.blogManager) {
+        window.blogManager.cancelEdit();
+    }
+}
+
+function switchTab(tab) {
+    if (window.blogManager) {
+        window.blogManager.switchTab(tab);
+    }
+}
+
+function togglePreview() {
+    const previewContent = document.getElementById('preview-content');
+    if (previewContent) {
+        const isVisible = previewContent.style.display !== 'none';
+        switchTab(isVisible ? 'write' : 'preview');
+    }
+}

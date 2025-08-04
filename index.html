@@ -1,91 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>김동휘 포트폴리오</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>김동휘 포트폴리오</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-  <div class="container">
-    <h1 id="welcome"></h1>
-    <p id="instruction"></p>
-
-    <div class="menu hidden" id="menu">
-      <a href="portfolio.html">📁 포트폴리오</a>
-      <a href="resume.html">📄 이력서</a>
-      <a href="stack.html">🛠️ 기술스택</a>
-      <a href="blog/index.html">📝 기술블로그</a>
+    <!-- 다크모드 토글 버튼 -->
+    <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 18C8.686 18 6 15.314 6 12S8.686 6 12 6s6 2.686 6 6-2.686 6-6 6zM12 2a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zM21 11h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM6 11H4a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM16.142 6.343l1.414-1.414a1 1 0 0 1 1.414 1.414L17.556 7.757a1 1 0 0 1-1.414-1.414zM6.343 17.657l-1.414 1.414a1 1 0 0 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zM12 22a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zM17.657 17.657a1 1 0 0 1-1.414-1.414L17.657 15a1 1 0 0 1 1.414 1.414l-1.414 1.243z"/>
+        </svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.64 13a1 1 0 0 0-1.05-.14 8.05 8.05 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05z"/>
+        </svg>
     </div>
 
-    <div class="chat-box hidden" id="chat-box">
-      <div id="chat-window" class="chat-window"></div>
-      <div class="chat-input">
-        <input type="text" id="question" placeholder="궁금한 내용을 입력하세요">
-        <button onclick="askChat()">전송</button>
-      </div>
+    <div class="container">
+        <div class="main-content">
+            <div class="welcome-text">
+                <h1 id="welcome-message"></h1>
+                <p id="instruction-text"></p>
+                
+                <div class="quick-buttons" id="quick-buttons" style="display: none;">
+                    <button class="quick-btn" onclick="navigateToPage('portfolio')">포트폴리오</button>
+                    <button class="quick-btn" onclick="navigateToPage('resume')">이력서</button>
+                    <button class="quick-btn" onclick="navigateToPage('skills')">기술스택</button>
+                    <button class="quick-btn" onclick="navigateToPage('blog')">기술블로그</button>
+                </div>
+                
+                <div class="input-container" id="input-container" style="display: none;">
+                    <input type="text" id="user-input" placeholder="질문이나 원하는 내용을 입력해주세요...">
+                    <button onclick="handleUserInput()">전송</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    function typeText(el, text, speed, callback) {
-      let i = 0;
-      const timer = setInterval(() => {
-        el.textContent += text[i++];
-        if (i === text.length) {
-          clearInterval(timer);
-          if (callback) callback();
-        }
-      }, speed);
-    }
+    <!-- 페이지 콘텐츠 영역 -->
+    <div class="page-content" id="page-content" style="display: none;">
+        <div class="page-header">
+            <button class="back-btn" onclick="goHome()">← 홈으로</button>
+        </div>
+        <div class="page-body" id="page-body">
+            <!-- 동적으로 콘텐츠가 로드됩니다 -->
+        </div>
+        
+        <!-- 플로팅 채팅 버튼 -->
+        <div class="chat-float-btn" id="chat-float-btn" onclick="openChat()">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+            </svg>
+        </div>
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const welcome = document.getElementById('welcome');
-      const instruction = document.getElementById('instruction');
-      typeText(welcome, '김동휘님의 홈페이지에 오신 걸 환영합니다', 100, () => {
-        typeText(instruction, '필요하신 내용을 작성해주세요', 100, () => {
-          document.getElementById('menu').classList.add('show');
-          document.getElementById('chat-box').classList.add('show');
-          document.getElementById('question').addEventListener('keydown', e => {
-            if (e.key === 'Enter') askChat();
-          });
-        });
-      });
-    });
+        <!-- 채팅창 -->
+        <div class="chat-container" id="chat-container">
+            <div class="chat-header">
+                <span>AI 어시스턴트</span>
+                <button class="chat-close" onclick="closeChat()">×</button>
+            </div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input">
+                <input type="text" id="chat-input" placeholder="궁금한 것을 물어보세요...">
+                <button onclick="sendChatMessage()">전송</button>
+            </div>
+        </div>
+    </div>
 
-    function addMessage(text, cls) {
-      const div = document.createElement('div');
-      div.className = `message ${cls}`;
-      div.textContent = text;
-      document.getElementById('chat-window').appendChild(div);
-      div.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function askChat() {
-      const input = document.getElementById("question");
-      const q = input.value.trim();
-      if (!q) return;
-      addMessage(q, 'user');
-      input.value = '';
-
-      const lower = q.toLowerCase();
-      if (lower.includes("포트폴리오") || lower.includes("portfolio")) {
-        addMessage('포트폴리오 페이지로 이동합니다.', 'bot');
-        setTimeout(() => location.href = 'portfolio.html', 800);
-      } else if (lower.includes("이력서") || lower.includes("resume")) {
-        addMessage('이력서 페이지로 이동합니다.', 'bot');
-        setTimeout(() => location.href = 'resume.html', 800);
-      } else if (lower.includes("기술스택") || lower.includes("stack")) {
-        addMessage('기술스택 페이지로 이동합니다.', 'bot');
-        setTimeout(() => location.href = 'stack.html', 800);
-      } else if (lower.includes("블로그") || lower.includes("blog")) {
-        addMessage('블로그 페이지로 이동합니다.', 'bot');
-        setTimeout(() => location.href = 'blog/index.html', 800);
-      } else {
-        addMessage('죄송해요, 해당 내용을 찾을 수 없어요. 메뉴를 참고해주세요.', 'bot');
-      }
-    }
-  </script>
-
+    <script src="js/gradient.js"></script>
+    <script src="js/blog.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/typing.js"></script>
 </body>
 </html>
