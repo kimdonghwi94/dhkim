@@ -98,6 +98,392 @@ body.dark-mode .input-container input:focus {
     border-color: rgba(255, 255, 255, 0.4);
 }
 
+/* AI 대화 시스템 스타일 */
+.temporary-message {
+    margin-bottom: 15px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 0.95em;
+    line-height: 1.5;
+    animation: slideInUp 0.3s ease-out;
+}
+
+.user-message {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.ai-message {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.error-message {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.message-content {
+    flex: 1;
+    word-wrap: break-word;
+}
+
+.message-close {
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    padding: 0 4px;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-close:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* 로딩 스피너 */
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 다크모드 메시지 스타일 */
+body.dark-mode .temporary-message {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .user-message {
+    background: rgba(102, 126, 234, 0.2);
+    color: #9f7aea;
+    border-color: rgba(102, 126, 234, 0.4);
+}
+
+body.dark-mode .ai-message {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+body.dark-mode .error-message {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+body.dark-mode .message-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 버튼 비활성화 상태 */
+.input-container button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.input-container input:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* 승인 모달 스타일 */
+.approval-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.approval-modal.active {
+    opacity: 1;
+}
+
+.approval-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+}
+
+.approval-modal-content {
+    position: relative;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.approval-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.approval-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+.approval-close {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #718096;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.approval-close:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.approval-body {
+    padding: 24px;
+}
+
+.ai-message-preview {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 12px;
+}
+
+.ai-avatar {
+    font-size: 1.5em;
+    flex-shrink: 0;
+}
+
+.ai-response {
+    color: #16a34a;
+    font-size: 0.95em;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.approval-action-info {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px;
+    background: rgba(102, 126, 234, 0.05);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    border-radius: 12px;
+}
+
+.action-icon {
+    font-size: 2em;
+    flex-shrink: 0;
+}
+
+.action-details h4 {
+    margin: 0 0 8px 0;
+    color: #2d3748;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.action-details p {
+    margin: 0;
+    color: #4a5568;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.approval-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px 24px;
+    justify-content: flex-end;
+}
+
+.approval-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95em;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cancel-btn {
+    background: rgba(156, 163, 175, 0.1);
+    color: #6b7280;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.cancel-btn:hover {
+    background: rgba(156, 163, 175, 0.2);
+    border-color: rgba(156, 163, 175, 0.5);
+    transform: translateY(-1px);
+}
+
+.approve-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+}
+
+.approve-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+}
+
+/* 다크모드 승인 모달 */
+body.dark-mode .approval-modal-content {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .approval-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .approval-header h3 {
+    color: #e2e8f0;
+}
+
+body.dark-mode .approval-close {
+    color: #a0aec0;
+}
+
+body.dark-mode .ai-message-preview {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+body.dark-mode .ai-response {
+    color: #4ade80;
+}
+
+body.dark-mode .approval-action-info {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+body.dark-mode .action-details h4 {
+    color: #e2e8f0;
+}
+
+body.dark-mode .action-details p {
+    color: #a0aec0;
+}
+
+body.dark-mode .cancel-btn {
+    background: rgba(156, 163, 175, 0.2);
+    color: #9ca3af;
+    border-color: rgba(156, 163, 175, 0.4);
+}
+
+body.dark-mode .cancel-btn:hover {
+    background: rgba(156, 163, 175, 0.3);
+    border-color: rgba(156, 163, 175, 0.6);
+}
+
+/* 반응형 승인 모달 */
+@media (max-width: 768px) {
+    .approval-modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .approval-body {
+        padding: 20px;
+    }
+    
+    .approval-action-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    .approval-footer {
+        flex-direction: column;
+    }
+    
+    .approval-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 body.dark-mode .page-header {
     background: rgba(0, 0, 0, 0.3);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);

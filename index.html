@@ -25,10 +25,10 @@
                 <p id="instruction-text"></p>
                 
                 <div class="quick-buttons" id="quick-buttons" style="display: none;">
-                    <button class="quick-btn" onclick="navigateToPage('portfolio')">포트폴리오</button>
-                    <button class="quick-btn" onclick="navigateToPage('resume')">이력서</button>
-                    <button class="quick-btn" onclick="navigateToPage('skills')">기술스택</button>
-                    <button class="quick-btn" onclick="navigateToPage('blog')">기술블로그</button>
+                    <button class="quick-btn" onclick="setPromptText('포트폴리오를 보여줘')">포트폴리오</button>
+                    <button class="quick-btn" onclick="setPromptText('이력서를 보여줘')">이력서</button>
+                    <button class="quick-btn" onclick="setPromptText('기술스택을 알려줘')">기술스택</button>
+                    <button class="quick-btn" onclick="setPromptText('기술블로그를 보여줘')">기술블로그</button>
                 </div>
                 
                 <div class="input-container" id="input-container" style="display: none;">
@@ -72,6 +72,9 @@
     <script src="js/gradient.js"></script>
     <script src="js/blog.js"></script>
     <script src="js/markdown-loader.js"></script>
+    <script src="js/session-manager.js"></script>
+    <script src="js/approval-system.js"></script>
+    <script src="js/mcp-agent.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/main.js"></script>
     <script src="js/typing.js"></script>

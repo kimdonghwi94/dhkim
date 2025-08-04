@@ -70,6 +70,18 @@ class NavigationSystem {
                 // 플로팅 버튼 표시 (메인 페이지가 아닐 때만)
                 const chatFloatBtn = document.getElementById('chat-float-btn');
                 chatFloatBtn.style.display = 'flex';
+                
+                // 세션 컨텍스트 업데이트
+                if (window.sessionManager) {
+                    window.sessionManager.setCurrentContext({
+                        page: pageName,
+                        pageTitle: this.pages[pageName].title,
+                        navigationTime: Date.now()
+                    });
+                    
+                    // 채팅 히스토리 동기화
+                    window.sessionManager.syncToFloatingChat();
+                }
             }, 50);
         }, 300);
     }
