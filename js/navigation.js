@@ -4,19 +4,19 @@ class NavigationSystem {
         this.pages = {
             'portfolio': {
                 title: '포트폴리오',
-                content: '<h1 style="font-size: 3em; color: #667eea;">Hello World</h1>'
+                isMarkdown: true
             },
             'resume': {
                 title: '이력서',
-                content: '<h1 style="font-size: 3em; color: #667eea;">이력서 페이지</h1><p>여기에 이력서 내용이 표시됩니다.</p>'
+                isMarkdown: true
             },
             'skills': {
                 title: '기술스택',
-                content: '<h1 style="font-size: 3em; color: #667eea;">기술스택 페이지</h1><p>여기에 기술스택 내용이 표시됩니다.</p>'
+                isMarkdown: true
             },
             'blog': {
                 title: '기술블로그',
-                content: '' // 동적으로 로드됨
+                isMarkdown: false // 동적으로 로드됨
             }
         };
     }
@@ -39,16 +39,25 @@ class NavigationSystem {
         mainContainer.style.transition = 'opacity 0.3s ease';
         mainContainer.style.opacity = '0';
 
-        setTimeout(() => {
+        setTimeout(async () => {
             mainContainer.style.display = 'none';
             
             // 페이지 콘텐츠 설정
             if (pageName === 'blog') {
                 // 블로그 페이지는 동적으로 콘텐츠 생성
                 pageBody.innerHTML = this.getBlogContent();
+            } else if (this.pages[pageName].isMarkdown) {
+                // 마크다운 페이지는 마크다운 로더 사용 (관리자 버튼 포함)
+                if (window.markdownLoader) {
+                    console.log(`네비게이션: ${pageName} 페이지 로드 중...`);
+                    pageBody.innerHTML = await window.markdownLoader.getPageContent(pageName);
+                } else {
+                    pageBody.innerHTML = `<h1>로딩 중...</h1><p>마크다운 로더를 불러오는 중입니다.</p>`;
+                }
             } else {
-                pageBody.innerHTML = this.pages[pageName].content;
+                pageBody.innerHTML = '<h1>페이지를 찾을 수 없습니다.</h1>';
             }
+            
             document.title = `${this.pages[pageName].title} - 김동휘 포트폴리오`;
             
             // 페이지 콘텐츠 표시
@@ -127,22 +136,43 @@ class NavigationSystem {
             `;
         }
 
-        return posts.map(post => `
-            <article class="blog-post" onclick="viewPost('${post.id}')">
-                <div class="post-meta">
-                    <span class="post-date">${new Date(post.createdAt).toLocaleDateString('ko-KR')}</span>
-                    <div class="post-actions">
-                        <button onclick="editPost('${post.id}'); event.stopPropagation();" class="edit-btn">편집</button>
-                        <button onclick="deletePost('${post.id}'); event.stopPropagation();" class="delete-btn">삭제</button>
+        return posts.map(post => {
+            // 미리보기용 마크다운 파싱 (간단 버전)
+            let previewContent = post.content.substring(0, 200);
+            
+            // 마크다운을 HTML로 변환
+            previewContent = previewContent.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            previewContent = previewContent.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            previewContent = previewContent.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            previewContent = previewContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            previewContent = previewContent.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            previewContent = previewContent.replace(/`([^`]+)`/g, '<code>$1</code>');
+            previewContent = previewContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+            previewContent = previewContent.replace(/^\* (.+)$/gm, '• $1');
+            previewContent = previewContent.replace(/\n/g, '<br>');
+            
+            // 200자 이후 잘라내기
+            if (post.content.length > 200) {
+                previewContent += '...';
+            }
+            
+            return `
+                <article class="blog-post" onclick="viewPost('${post.id}')">
+                    <div class="post-meta">
+                        <span class="post-date">${new Date(post.createdAt).toLocaleDateString('ko-KR')}</span>
+                        <div class="post-actions">
+                            <button onclick="editPost('${post.id}'); event.stopPropagation();" class="edit-btn">편집</button>
+                            <button onclick="deletePost('${post.id}'); event.stopPropagation();" class="delete-btn">삭제</button>
+                        </div>
                     </div>
-                </div>
-                <h2 class="post-title">${post.title}</h2>
-                <p class="post-excerpt">${post.excerpt}</p>
-                <div class="post-tags">
-                    ${post.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-            </article>
-        `).join('');
+                    <h2 class="post-title">${post.title}</h2>
+                    <div class="post-excerpt">${previewContent}</div>
+                    <div class="post-tags">
+                        ${post.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                </article>
+            `;
+        }).join('');
     }
 
     getStoredPosts() {

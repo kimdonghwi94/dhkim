@@ -223,6 +223,349 @@ body.dark-mode .theme-toggle .moon-icon {
     transform: rotate(0deg);
 }
 
+
+
+/* 페이지 콘텐츠 영역 스타일 */
+.page-content {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: var(--dynamic-gradient);
+    background-size: 400% 400%;
+    animation: gradientShift 20s ease infinite;
+    z-index: 100;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.page-header {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 15px 20px;
+    z-index: 101;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    color: #4a5568;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    font-size: 0.95em;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.page-body {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    line-height: 1.7;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    
+    /* 강제로 세로 레이아웃 적용 */
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* 마크다운 콘텐츠 스타일링 */
+.page-body * {
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal !important;
+    display: block;
+    width: auto;
+}
+
+.page-body {
+    /* 모든 자식 요소를 강제로 블록 레벨로 */
+}
+
+.page-body > * {
+    display: block !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    float: none !important;
+    position: static !important;
+}
+
+.page-body h1 {
+    font-size: 2.5em;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 0 0 30px 0;
+    line-height: 1.2;
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #718096 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+    width: 100%;
+}
+
+.page-body h2 {
+    font-size: 2em;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 40px 0 20px 0;
+    line-height: 1.3;
+    border-bottom: 2px solid rgba(45, 55, 72, 0.1);
+    padding-bottom: 10px;
+    display: block;
+    width: 100%;
+}
+
+.page-body h3 {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #4a5568;
+    margin: 30px 0 15px 0;
+    line-height: 1.4;
+    display: block;
+    width: 100%;
+}
+
+.page-body h4 {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #4a5568;
+    margin: 25px 0 12px 0;
+}
+
+.page-body p {
+    color: #4a5568;
+    margin-bottom: 18px;
+    font-size: 1.1em;
+    line-height: 1.7;
+    width: 100%;
+    display: block;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.page-body ul, .page-body ol {
+    color: #4a5568;
+    margin: 15px 0 15px 25px;
+    font-size: 1.05em;
+    width: 100%;
+    display: block;
+    box-sizing: border-box;
+}
+
+.page-body li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.page-body strong {
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.page-body em {
+    font-style: italic;
+    color: #718096;
+}
+
+.page-body code {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    padding: 3px 6px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.page-body pre {
+    background: rgba(45, 55, 72, 0.05);
+    border: 1px solid rgba(45, 55, 72, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.page-body pre code {
+    background: none;
+    color: #2d3748;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+}
+
+.page-body a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.page-body a:hover {
+    color: #553c9a;
+    border-bottom-color: #667eea;
+}
+
+.page-body hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(45, 55, 72, 0.2), transparent);
+    margin: 40px 0;
+}
+
+.page-body blockquote {
+    border-left: 4px solid #667eea;
+    background: rgba(102, 126, 234, 0.05);
+    margin: 20px 0;
+    padding: 15px 20px;
+    font-style: italic;
+    color: #4a5568;
+    border-radius: 0 8px 8px 0;
+}
+
+/* 다크모드 페이지 콘텐츠 스타일 */
+body.dark-mode .page-content {
+    color: #e2e8f0;
+}
+
+body.dark-mode .page-header {
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #e2e8f0;
+}
+
+body.dark-mode .back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .page-body h1 {
+    color: #e2e8f0;
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 50%, #a0aec0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+body.dark-mode .page-body h2 {
+    color: #e2e8f0;
+    border-bottom-color: rgba(226, 232, 240, 0.2);
+}
+
+body.dark-mode .page-body h3,
+body.dark-mode .page-body h4 {
+    color: #cbd5e0;
+}
+
+body.dark-mode .page-body p,
+body.dark-mode .page-body ul,
+body.dark-mode .page-body ol,
+body.dark-mode .page-body li {
+    color: #a0aec0;
+}
+
+body.dark-mode .page-body strong {
+    color: #e2e8f0;
+}
+
+body.dark-mode .page-body em {
+    color: #718096;
+}
+
+body.dark-mode .page-body code {
+    background: rgba(102, 126, 234, 0.2);
+    color: #9f7aea;
+}
+
+body.dark-mode .page-body pre {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .page-body pre code {
+    color: #e2e8f0;
+}
+
+body.dark-mode .page-body a {
+    color: #9f7aea;
+}
+
+body.dark-mode .page-body a:hover {
+    color: #b794f6;
+    border-bottom-color: #9f7aea;
+}
+
+body.dark-mode .page-body hr {
+    background: linear-gradient(to right, transparent, rgba(226, 232, 240, 0.2), transparent);
+}
+
+body.dark-mode .page-body blockquote {
+    border-left-color: #9f7aea;
+    background: rgba(159, 122, 234, 0.1);
+    color: #a0aec0;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .page-body {
+        padding: 20px 15px;
+    }
+    
+    .page-body h1 {
+        font-size: 2em;
+    }
+    
+    .page-body h2 {
+        font-size: 1.6em;
+    }
+    
+    .page-body h3 {
+        font-size: 1.3em;
+    }
+    
+    .page-body p,
+    .page-body ul,
+    .page-body ol {
+        font-size: 1em;
+    }
+}
+
 /* 블로그 페이지 스타일 */
 .blog-container {
     width: 100%;
@@ -375,11 +718,58 @@ body.dark-mode .theme-toggle .moon-icon {
     color: #4a5568;
     line-height: 1.6;
     margin-bottom: 20px;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
     overflow: hidden;
-    font-size: 1.05em;
+    font-size: 1em;
+    max-height: 120px;
+}
+
+.post-excerpt h1 {
+    font-size: 1.4em;
+    font-weight: 600;
+    margin: 8px 0;
+    color: #2d3748;
+}
+
+.post-excerpt h2 {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin: 6px 0;
+    color: #2d3748;
+}
+
+.post-excerpt h3 {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin: 4px 0;
+    color: #2d3748;
+}
+
+.post-excerpt strong {
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.post-excerpt em {
+    font-style: italic;
+    color: #4a5568;
+}
+
+.post-excerpt code {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+}
+
+.post-excerpt a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.post-excerpt a:hover {
+    text-decoration: underline;
 }
 
 .post-tags {
@@ -433,6 +823,29 @@ body.dark-mode .post-excerpt {
 
 body.dark-mode .post-date {
     color: #718096;
+}
+
+body.dark-mode .post-excerpt h1,
+body.dark-mode .post-excerpt h2,
+body.dark-mode .post-excerpt h3 {
+    color: #e2e8f0;
+}
+
+body.dark-mode .post-excerpt strong {
+    color: #e2e8f0;
+}
+
+body.dark-mode .post-excerpt em {
+    color: #a0aec0;
+}
+
+body.dark-mode .post-excerpt code {
+    background: rgba(102, 126, 234, 0.2);
+    color: #9f7aea;
+}
+
+body.dark-mode .post-excerpt a {
+    color: #9f7aea;
 }
 
 /* 블로그 에디터 스타일 */
@@ -648,9 +1061,11 @@ body.dark-mode .post-date {
 
 /* 포스트 뷰어 스타일 */
 .post-viewer {
-    max-width: 800px;
+    width: 100%;
+    max-width: 1000px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 40px;
+    min-height: 100vh;
 }
 
 .post-header {
@@ -700,33 +1115,68 @@ body.dark-mode .post-date {
 }
 
 .post-body {
-    font-size: 1.1em;
+    font-size: 1.3em;
     line-height: 1.8;
     color: #2d3748;
+    max-width: none;
 }
 
 .post-body h1, .post-body h2, .post-body h3 {
-    margin-top: 32px;
-    margin-bottom: 16px;
+    margin-top: 40px;
+    margin-bottom: 20px;
     color: #2d3748;
 }
 
 .post-body h1 {
-    font-size: 1.8em;
+    font-size: 2.2em;
     border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-    padding-bottom: 8px;
+    padding-bottom: 12px;
 }
 
 .post-body h2 {
-    font-size: 1.4em;
+    font-size: 1.8em;
 }
 
 .post-body h3 {
-    font-size: 1.2em;
+    font-size: 1.5em;
 }
 
 .post-body p {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+}
+
+.post-body ul, .post-body ol {
+    margin: 20px 0;
+    padding-left: 30px;
+}
+
+.post-body li {
+    margin-bottom: 12px;
+}
+
+.post-body code {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+}
+
+.post-body pre {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+    margin: 24px 0;
+}
+
+.post-body pre code {
+    background: none;
+    color: #2d3748;
+    padding: 0;
+    font-size: 1em;
 }
 
 /* 다크모드 에디터 스타일 */
@@ -797,6 +1247,29 @@ body.dark-mode .post-body h1,
 body.dark-mode .post-body h2,
 body.dark-mode .post-body h3 {
     color: #e2e8f0;
+}
+
+body.dark-mode .post-body code {
+    background: rgba(102, 126, 234, 0.2);
+    color: #9f7aea;
+}
+
+body.dark-mode .post-body pre {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .post-body pre code {
+    background: none;
+    color: #e2e8f0;
+}
+
+body.dark-mode .post-body a {
+    color: #9f7aea;
+}
+
+body.dark-mode .post-body a:hover {
+    color: #b794f6;
 }
 
 .container {
@@ -1236,7 +1709,7 @@ body.dark-mode .post-body h3 {
     }
     
     .blog-container {
-        padding: 20px 16px;
+        padding: 24px 16px;
     }
     
     .blog-header {
@@ -1251,11 +1724,28 @@ body.dark-mode .post-body h3 {
     
     .blog-posts {
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 20px;
+    }
+    
+    .blog-post {
+        min-height: 240px;
+        padding: 24px;
+    }
+    
+    .empty-state {
+        padding: 80px 20px;
+    }
+    
+    .empty-state h3 {
+        font-size: 1.6em;
+    }
+    
+    .empty-state p {
+        font-size: 1.1em;
     }
     
     .editor-container {
-        padding: 16px;
+        padding: 20px 16px;
     }
     
     .editor-header {
@@ -1268,8 +1758,23 @@ body.dark-mode .post-body h3 {
         justify-content: center;
     }
     
-    .post-viewer {
+    .editor-content {
+        min-height: 400px;
+    }
+    
+    .markdown-editor {
+        height: 400px;
         padding: 16px;
+        font-size: 0.95em;
+    }
+    
+    .preview-content {
+        padding: 16px;
+        min-height: 360px;
+    }
+    
+    .post-viewer {
+        padding: 20px 16px;
     }
     
     .post-header {

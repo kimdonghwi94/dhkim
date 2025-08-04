@@ -11,40 +11,73 @@ class BlogManager {
     }
 
     initMarkdownParser() {
-        this.markdownRules = [
-            // 헤더
-            { pattern: /^### (.*$)/gim, replacement: '<h3>$1</h3>' },
-            { pattern: /^## (.*$)/gim, replacement: '<h2>$1</h2>' },
-            { pattern: /^# (.*$)/gim, replacement: '<h1>$1</h1>' },
-            
-            // 강조
-            { pattern: /\*\*(.*?)\*\*/gim, replacement: '<strong>$1</strong>' },
-            { pattern: /\*(.*?)\*/gim, replacement: '<em>$1</em>' },
-            
-            // 코드
-            { pattern: /```([\s\S]*?)```/gim, replacement: '<pre><code>$1</code></pre>' },
-            { pattern: /`([^`]*)`/gim, replacement: '<code>$1</code>' },
-            
-            // 링크
-            { pattern: /\[([^\]]*?)\]\(([^\)]*?)\)/gim, replacement: '<a href="$2">$1</a>' },
-            
-            // 리스트
-            { pattern: /^\* (.*$)/gim, replacement: '<li>$1</li>' },
-            
-            // 줄바꿈
-            { pattern: /\n/gim, replacement: '<br>' },
-        ];
+        // 더 간단하고 안정적인 마크다운 파서
     }
 
     parseMarkdown(markdown) {
+        if (!markdown) return '';
+        
         let html = markdown;
         
-        this.markdownRules.forEach(rule => {
-            html = html.replace(rule.pattern, rule.replacement);
-        });
+        // 1. 코드 블록 처리 (먼저 처리해야 다른 규칙과 충돌 방지)
+        html = html.replace(/```([^`]*?)```/g, '<pre><code>$1</code></pre>');
         
-        // 리스트 래핑 - 연속된 li 태그들을 ul로 감싸기
-        html = html.replace(/(<li>.*?<\/li>(\s*<li>.*?<\/li>)*)/gims, '<ul>$1</ul>');
+        // 2. 인라인 코드 처리
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
+        // 3. 헤더 처리
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+        
+        // 4. 강조 처리
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        
+        // 5. 링크 처리
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        
+        // 6. 리스트 처리
+        const lines = html.split('\n');
+        const processedLines = [];
+        let inList = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            if (line.match(/^\* (.+)/)) {
+                if (!inList) {
+                    processedLines.push('<ul>');
+                    inList = true;
+                }
+                processedLines.push('<li>' + line.replace(/^\* /, '') + '</li>');
+            } else {
+                if (inList) {
+                    processedLines.push('</ul>');
+                    inList = false;
+                }
+                processedLines.push(line);
+            }
+        }
+        
+        if (inList) {
+            processedLines.push('</ul>');
+        }
+        
+        html = processedLines.join('\n');
+        
+        // 7. 줄바꿈 처리 (두 개의 연속된 줄바꿈은 문단으로, 하나는 br로)
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = html.replace(/\n/g, '<br>');
+        
+        // 8. 문단 래핑
+        if (html && !html.startsWith('<')) {
+            html = '<p>' + html + '</p>';
+        }
+        
+        // 9. 빈 문단 제거
+        html = html.replace(/<p><\/p>/g, '');
+        html = html.replace(/<p><br><\/p>/g, '');
         
         return html;
     }
@@ -139,7 +172,19 @@ class BlogManager {
         }
         
         const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
-        const excerpt = content.substring(0, 150) + (content.length > 150 ? '...' : '');
+        
+        // Excerpt 생성 - 마크다운을 HTML로 변환 후 텍스트만 추출
+        let excerptText = content.substring(0, 200);
+        // 마크다운 문법 제거
+        excerptText = excerptText.replace(/#{1,3}\s/g, ''); // 헤더 제거
+        excerptText = excerptText.replace(/\*\*(.*?)\*\*/g, '$1'); // 굵게 제거
+        excerptText = excerptText.replace(/\*(.*?)\*/g, '$1'); // 기울임 제거
+        excerptText = excerptText.replace(/`(.*?)`/g, '$1'); // 인라인 코드 제거
+        excerptText = excerptText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // 링크 제거
+        excerptText = excerptText.replace(/^\* /gm, '• '); // 리스트 마커 변경
+        excerptText = excerptText.replace(/\n/g, ' '); // 줄바꿈을 공백으로
+        
+        const excerpt = excerptText.substring(0, 150) + (excerptText.length > 150 ? '...' : '');
         
         const post = {
             id: this.currentPostId,
