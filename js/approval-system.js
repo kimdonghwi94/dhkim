@@ -6,7 +6,6 @@ class ApprovalSystem {
 
     init() {
         this.createApprovalModal();
-        console.log('승인 시스템 초기화 완료');
     }
 
     createApprovalModal() {

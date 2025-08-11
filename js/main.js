@@ -4,8 +4,34 @@ class PortfolioApp {
         this.isInitialized = false;
         this.apiEndpoint = 'http://localhost:8000/agent/chat'; // Proxy 서버 엔드포인트 설정
         this.isProcessing = false;
-        this.demoMode = true; // 데모 모드 (Proxy 서버 없을 때 자동 활성화)
         this.init();
+    }
+
+    // 서버 연결 상태 확인 및 에러 메시지 처리
+    checkServerConnection() {
+        if (!window.proxyAPI || !window.proxyAPI.isConnected) {
+            this.showErrorMessage('서버에 연결되지 않아 요청을 처리할 수 없습니다.');
+            return false;
+        }
+        return true;
+    }
+
+    // 에러 처리 헬퍼 함수
+    handleConnectionError(error) {
+        if (error.message.includes('프록시 서버')) {
+            this.showErrorMessage('서버에 연결되지 않아 요청을 처리할 수 없습니다.');
+        } else {
+            this.showErrorMessage('처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
+    }
+
+    // 채팅에서의 연결 에러 처리
+    handleChatConnectionError(error) {
+        if (error.message.includes('프록시 서버')) {
+            this.addChatMessage('ai', '서버에 연결되지 않아 응답을 생성할 수 없습니다.');
+        } else {
+            this.addChatMessage('ai', '죄송합니다. 응답 처리 중 오류가 발생했습니다.');
+        }
     }
 
     init() {
@@ -52,6 +78,9 @@ class PortfolioApp {
         
         if (!userMessage || this.isProcessing) return;
 
+        // 서버 연결 상태 확인
+        if (!this.checkServerConnection()) return;
+
         // 로딩 상태 시작
         this.setLoadingState(true);
         input.value = '';
@@ -60,8 +89,7 @@ class PortfolioApp {
             // AI API로 사용자 쿼리 전송
             await this.processUserQueryWithAI(userMessage);
         } catch (error) {
-            console.error('AI 처리 중 오류 발생:', error);
-            this.showErrorMessage('처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+            this.handleConnectionError(error);
         } finally {
             this.setLoadingState(false);
         }
@@ -84,26 +112,25 @@ class PortfolioApp {
         try {
             let result;
             
-            if (this.demoMode || !window.proxyAPI || !window.proxyAPI.isConnected) {
-                // 데모 모드 또는 Proxy 서버 연결 실패시
-                result = await this.processDemo(query);
-            } else {
-                // Proxy API를 통한 실제 처리
-                result = await window.proxyAPI.processStreamingQuery(query, {
-                    currentPage: 'home',
-                    onStream: (content, fullContent) => {
-                        this.updateLastAIMessage(fullContent);
-                    }
-                });
+            if (!window.proxyAPI || !window.proxyAPI.isConnected) {
+                // 서버 연결 실패시
+                throw new Error('서버에 연결되지 않았습니다');
             }
+            
+            // Proxy API를 통한 실제 처리
+            result = await window.proxyAPI.processStreamingQuery(query, {
+                currentPage: 'home',
+                onStream: (content, fullContent) => {
+                    this.updateLastAIMessage(fullContent);
+                }
+            });
             
             // AI 응답 처리
             await this.handleAIResult(result, query);
             
         } catch (error) {
-            // 에러시 폴백 처리
-            console.warn('AI 처리 실패:', error);
-            this.showErrorMessage('처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+            // 연결 실패시 사용자에게 명확한 안내
+            this.handleConnectionError(error);
         }
         
         this.isProcessing = false;
@@ -144,17 +171,14 @@ class PortfolioApp {
                 );
 
                 if (approval.approved) {
-                    console.log('액션 승인됨:', action);
                     await this.executeAction(action);
                 } else {
-                    console.log('액션 취소됨:', action);
                 }
             } else {
                 // 승인 없이 즉시 실행
                 await this.executeAction(action);
             }
         } catch (error) {
-            console.error('액션 처리 중 오류:', error);
             
             if (error.message.includes('취소')) {
                 this.showTemporaryMessage('작업이 취소되었습니다.', 'ai-message');
@@ -165,7 +189,6 @@ class PortfolioApp {
     }
 
     async executeAction(action) {
-        console.log('액션 실행:', action);
 
         switch (action.type) {
             case 'navigate':
@@ -213,7 +236,6 @@ class PortfolioApp {
                 break;
                 
             default:
-                console.warn('알 수 없는 액션 타입:', action.type);
         }
     }
 
@@ -231,91 +253,6 @@ class PortfolioApp {
         }
     }
 
-    // 데모 처리 함수
-    async processDemo(query) {
-        // 스트리밍 효과를 위해 빈 메시지로 시작
-        this.showAIMessage('');
-
-        const lowerQuery = query.toLowerCase();
-        let response = '';
-        let actions = [];
-
-        // 키워드 기반 응답 생성
-        if (lowerQuery.includes('포트폴리오')) {
-            response = '포트폴리오 페이지로 이동합니다. 프로젝트와 작업 경험을 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'portfolio' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'demo' }
-            });
-        } else if (lowerQuery.includes('이력서')) {
-            response = '이력서 페이지로 이동합니다. 학력, 경력, 기본 정보를 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'resume' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'demo' }
-            });
-        } else if (lowerQuery.includes('기술스택') || lowerQuery.includes('기술')) {
-            response = '기술스택 페이지로 이동합니다. 보유한 기술과 역량을 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'skills' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'demo' }
-            });
-        } else if (lowerQuery.includes('블로그') || lowerQuery.includes('글')) {
-            response = '기술블로그 페이지로 이동합니다. 작성한 글들과 새 글 작성이 가능합니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'blog' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'demo' }
-            });
-        } else if (lowerQuery.includes('안녕') || lowerQuery.includes('hello') || lowerQuery.includes('hi')) {
-            response = '안녕하세요! 김동휘의 포트폴리오에 오신 것을 환영합니다. 포트폴리오, 이력서, 기술스택, 기술블로그 중 어떤 것을 보고 싶으신가요?';
-        } else if (lowerQuery.includes('도움') || lowerQuery.includes('help')) {
-            response = '다음과 같이 말씀해주세요:\n• "포트폴리오를 보여줘"\n• "이력서를 알려줘"\n• "기술스택을 보여줘"\n• "기술블로그를 보여줘"';
-        } else if (lowerQuery.includes('프로젝트')) {
-            response = '다양한 프로젝트 경험을 포트폴리오에서 확인하실 수 있습니다. 에이전트 기반 시스템, 웹 개발, AI/ML 프로젝트 등을 진행했습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'portfolio' },
-                requires_approval: true,
-                metadata: { confidence: 0.9, source: 'demo' }
-            });
-        } else if (lowerQuery.includes('연락') || lowerQuery.includes('contact')) {
-            response = '연락처 정보는 이력서 페이지에서 확인하실 수 있습니다. 이메일이나 LinkedIn을 통해 연락 주시면 빠르게 답변드리겠습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'resume' },
-                requires_approval: true,
-                metadata: { confidence: 0.9, source: 'demo' }
-            });
-        } else {
-            response = `"${query}"에 대한 답변을 드리겠습니다. 포트폴리오 관련 질문이시라면 구체적으로 "포트폴리오", "이력서", "기술스택", "기술블로그" 중 하나를 언급해주세요.
-
-💡 **데모 모드**로 실행 중입니다. Proxy 서버가 연결되면 더 정확한 AI 응답을 제공합니다.`;
-        }
-
-        // 타이핑 효과 시뮬레이션
-        await this.typeMessage(response);
-
-        return {
-            text: response,
-            actions: actions,
-            metadata: {
-                source: 'demo',
-                timestamp: Date.now(),
-                mode: 'demo_simulation',
-                query_analysis: {
-                    intent: actions.length > 0 ? 'navigation' : 'general',
-                    confidence: 0.9
-                }
-            }
-        };
-    }
 
     // UI 헬퍼 함수들
     setLoadingState(isLoading) {
@@ -341,14 +278,12 @@ class PortfolioApp {
 
     showUserMessage(message) {
         // 메인 페이지에서는 시각적 피드백만 제공
-        console.log('사용자 입력:', message);
         
         // 입력창 위에 사용자 메시지 임시 표시 (옵션)
         this.showTemporaryMessage(`질문: ${message}`, 'user-message');
     }
 
     showAIMessage(message) {
-        console.log('AI 응답:', message);
         
         // AI 응답을 입력창 위에 표시
         this.showTemporaryMessage(message, 'ai-message');
@@ -389,7 +324,6 @@ class PortfolioApp {
     }
 
     showErrorMessage(message) {
-        console.error('오류:', message);
         this.showTemporaryMessage(`❌ ${message}`, 'error-message');
     }
 
@@ -398,6 +332,12 @@ class PortfolioApp {
         const message = input.value.trim();
         
         if (!message) return;
+
+        // 서버 연결 상태 확인
+        if (!window.proxyAPI || !window.proxyAPI.isConnected) {
+            this.addChatMessage('ai', '서버에 연결되지 않아 응답을 생성할 수 없습니다.');
+            return;
+        }
 
         // 채팅 메시지 추가
         this.addChatMessage('user', message);
@@ -418,16 +358,16 @@ class PortfolioApp {
             // 비동기 작업 처리
             let result;
             
-            if (this.demoMode || !window.proxyAPI || !window.proxyAPI.isConnected) {
-                // 데모 모드 또는 Proxy 서버 연결 실패시
-                result = await this.processDemo(message);
-            } else {
-                // Proxy API를 통한 실제 처리
-                result = await window.proxyAPI.processQuery(message, {
-                    currentPage: window.navigation?.currentPage || 'unknown',
-                    chatContext: true
-                });
+            if (!window.proxyAPI || !window.proxyAPI.isConnected) {
+                // 서버 연결 실패시
+                throw new Error('서버에 연결되지 않았습니다');
             }
+            
+            // Proxy API를 통한 실제 처리
+            result = await window.proxyAPI.processQuery(message, {
+                currentPage: window.navigation?.currentPage || 'unknown',
+                chatContext: true
+            });
 
             // AI 응답 표시
             if (result.text) {
@@ -454,8 +394,7 @@ class PortfolioApp {
             }
 
         } catch (error) {
-            console.error('플로팅 채팅 처리 실패:', error);
-            this.addChatMessage('ai', '죄송합니다. 응답 처리 중 오류가 발생했습니다.');
+            this.handleChatConnectionError(error);
         }
     }
 
@@ -478,7 +417,6 @@ class PortfolioApp {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }, 100);
 
-        console.log(`채팅 히스토리 ${messages.length}개 메시지 로드됨`);
     }
 
     addChatMessage(sender, message, autoScroll = true) {

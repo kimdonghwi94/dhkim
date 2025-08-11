@@ -23,7 +23,6 @@ class SessionManager {
         try {
             localStorage.removeItem('portfolio_session');
             localStorage.removeItem('portfolio_session_id');
-            console.log('기존 localStorage 데이터 정리됨');
         } catch (error) {
             console.error('localStorage 정리 실패:', error);
         }

@@ -8,7 +8,6 @@ class ProxyStatusManager {
     }
 
     init() {
-        console.log('MCP Status Manager 초기화 중...');
         
         // 주기적 상태 업데이트 시작
         this.startPeriodicRefresh();
@@ -39,63 +38,87 @@ class ProxyStatusManager {
     }
 
     async refreshStatus() {
-        console.log('Proxy API 상태 새로고침 중...');
-        
-        // Agent 리스트를 먼저 업데이트한 후 상태 표시
-        await this.updateAgentList();
-        await this.updateProxyStatus();
-        
-        this.updateUI();
-        
-        // 활성화된 서버들의 연결 상태 재확인 (데모 모드에서는 건너뜀)
-        if (window.proxyAPI && window.proxyAPI.isConnected) {
-            await this.checkActiveServers();
+        try {
+            // 연결 확인 중 표시
+            const statusLight = document.getElementById('status-light');
+            const statusText = document.getElementById('status-text');
+            
+            if (statusLight && statusText) {
+                statusLight.className = 'status-light connecting orange';
+                statusText.textContent = 'Agent List (연결 확인 중...)';
+            }
+            
+            if (window.proxyAPI) {
+                // 1. Health check 수행
+                const isConnected = await window.proxyAPI.checkHealth();
+                
+                if (isConnected) {
+                    // 2. 연결 성공시에만 Agent 리스트 로드
+                    await window.proxyAPI.loadAgents();
+                }
+                
+                // 3. UI 업데이트 (한 번만)
+                await this.updateAgentList();
+                await this.updateProxyStatus(true); // 이미 health check 했으므로 skip
+                this.updateUI();
+            }
+        } catch (error) {
+            // 에러 발생시 UI만 업데이트
+            await this.updateAgentList();
+            await this.updateProxyStatus(true);
+            this.updateUI();
         }
     }
 
-    async updateProxyStatus() {
+    async updateProxyStatus(skipHealthCheck = false) {
         const statusLight = document.getElementById('status-light');
         const statusText = document.getElementById('status-text');
         
         if (!statusLight || !statusText) return;
 
         try {
-            // Proxy API 연결 확인
             let isConnected = false;
             let status = { agents: [] };
             
             if (window.proxyAPI) {
-                isConnected = await window.proxyAPI.checkHealth();
-                status = window.proxyAPI.getStatus();
-            }
-            
-            // 상태 표시 업데이트 (색상 없음)
-            statusLight.className = 'status-light';
-            
-            if (isConnected) {
-                const agentCount = status.agents ? status.agents.length : 0;
-                statusText.textContent = `Agent List (${agentCount})`;
-            } else {
-                // 연결 실패시 데모 모드 표시 - 데모 Agent 개수 포함
-                const demoAgentCount = this.servers.size;
-                console.log(`데모 모드: Agent 개수 = ${demoAgentCount}, servers 맵:`, this.servers);
-                statusText.textContent = `Agent List (${demoAgentCount})`;
-                // 메인 앱도 데모 모드로 설정
-                if (window.portfolioApp) {
-                    window.portfolioApp.demoMode = true;
+                if (skipHealthCheck) {
+                    // Health check를 건너뛰고 현재 상태만 확인
+                    isConnected = window.proxyAPI.isConnected;
+                    status = window.proxyAPI.getStatus();
+                } else {
+                    // 연결 확인 중 상태 표시
+                    statusLight.className = 'status-light connecting orange';
+                    statusText.textContent = 'Agent List (연결 확인 중...)';
+                    
+                    try {
+                        // 상세한 health check 수행
+                        const healthCheck = await window.proxyAPI.checkHealth();
+                        isConnected = healthCheck;
+                        status = window.proxyAPI.getStatus();
+                        
+                        // 상세 health check는 불필요하므로 제거
+                    } catch (healthError) {
+                        isConnected = false;
+                        status = { agents: [] };
+                    }
                 }
             }
             
-        } catch (error) {
-            console.error('Proxy API 상태 업데이트 실패:', error);
-            statusLight.className = 'status-light';
-            // 에러 발생시도 데모 Agent 개수 표시
-            const demoAgentCount = this.servers.size;
-            statusText.textContent = `Agent List (${demoAgentCount})`;
-            // 에러 발생시도 데모 모드로 설정
-            if (window.portfolioApp) {
-                window.portfolioApp.demoMode = true;
+            // 연결 상태에 따른 상태 표시 업데이트
+            if (isConnected) {
+                statusLight.className = 'status-light connected green';
+                const agentCount = status.agents ? status.agents.length : 0;
+                statusText.textContent = `Agent List (${agentCount})`;
+            } else {
+                // 연결 실패시 빨간색 표시
+                statusLight.className = 'status-light error red';
+                statusText.textContent = `Agent List (0)`;
             }
+            
+        } catch (error) {
+            // 에러 발생시도 빨간색 표시
+            statusLight.className = 'status-light error red';
+            statusText.textContent = `Agent List (0)`;
         }
     }
 
@@ -107,14 +130,11 @@ class ProxyStatusManager {
         if (window.proxyAPI) {
             // Proxy API 상태 가져오기 (연결 상태와 관계없이)
             const status = window.proxyAPI.getStatus();
-            console.log('Proxy API 상태:', status);
             
             if (status.agents && status.agents.length > 0) {
-                console.log('Agent 데이터 처리 중:', status.agents);
                 
                 status.agents.forEach(agent => {
                     // AgentInfo 구조: { id, name, description, status, capabilities }
-                    console.log(`Agent 추가: ${agent.name} (${agent.id})`);
                     
                     this.servers.set(agent.id, {
                         id: agent.id,
@@ -141,97 +161,24 @@ class ProxyStatusManager {
                     });
                 });
             } else {
-                console.log('Agent 데이터가 없어서 기본 데모 데이터 사용');
-                this.createFallbackDemoData();
+                // Agent 데이터가 없으면 빈 상태로 유지
             }
         } else {
-            console.log('ProxyAPI가 없어서 기본 데모 데이터 사용');  
-            this.createFallbackDemoData();
+            // ProxyAPI가 없으면 빈 상태로 유지
         }
         
         // 저장된 상태 복원
         this.loadServerStates();
         
-        console.log('최종 servers 맵:', this.servers);
     }
 
-    // 폴백용 데모 데이터 생성
-    createFallbackDemoData() {
-        console.log('폴백 데모 데이터 생성 중...');
-        
-        // 데모 모드: 현실적인 Agent → MCP 서버 → 도구 구조
-        this.servers.set('portfolio-agent', {
-            id: 'portfolio-agent',
-            name: 'Portfolio Agent',
-            url: 'AI 포트폴리오 전문 에이전트',
-            status: 'connected',
-            enabled: true,
-            type: 'demo-agent',
-            expanded: false,
-            mcpServers: [
-                {
-                    id: 'navigation-mcp',
-                    name: 'Navigation MCP Server',
-                    url: 'localhost:3001 (Demo)',
-                    status: 'connected',
-                    expanded: false,
-                    tools: [
-                        { name: 'navigate_page' },
-                        { name: 'scroll_to_section' },
-                        { name: 'get_page_info' }
-                    ]
-                },
-                {
-                    id: 'content-mcp',
-                    name: 'Content Analysis MCP',
-                    url: 'localhost:3002 (Demo)', 
-                    status: 'connected',
-                    expanded: false,
-                    tools: [
-                        { name: 'analyze_query' },
-                        { name: 'generate_response' },
-                        { name: 'extract_intent' }
-                    ]
-                }
-            ]
-        });
-        
-        this.servers.set('blog-agent', {
-            id: 'blog-agent',
-            name: 'Blog Management Agent',
-            url: 'AI 블로그 관리 전문 에이전트',
-            status: 'connected',
-            enabled: true,
-            type: 'demo-agent',
-            expanded: false,
-            mcpServers: [
-                {
-                    id: 'blog-mcp',
-                    name: 'Blog MCP Server',
-                    url: 'localhost:3003 (Demo)',
-                    status: 'connected',
-                    expanded: false,
-                    tools: [
-                        { name: 'create_post' },
-                        { name: 'edit_post' },
-                        { name: 'search_posts' },
-                        { name: 'manage_categories' }
-                    ]
-                }
-            ]
-        });
-        
-        console.log('폴백 데모 데이터 생성 완료:', this.servers);
-    }
 
     
     // 활성화된 서버들의 연결 상태 자동 확인
     async checkActiveServers() {
-        console.log('활성화된 서버들의 연결 상태 확인 중...');
         
         for (const [serverId, server] of this.servers.entries()) {
             if (server.enabled) {
-                console.log(`서버 ${server.name} 연결 상태 확인 중...`);
                 
                 // 연결 중 상태로 변경
                 server.status = 'connecting';
@@ -244,16 +191,13 @@ class ProxyStatusManager {
                     if (result.success) {
                         server.status = 'connected';
                         server.tools = result.tools || [];
-                        console.log(`서버 ${server.name} 연결 확인됨`);
                     } else {
                         server.status = 'error';
                         server.tools = [];
-                        console.log(`서버 ${server.name} 연결 실패:`, result.error);
                     }
                 } catch (error) {
                     server.status = 'error';
                     server.tools = [];
-                    console.error(`서버 ${server.name} 연결 오류:`, error);
                 }
                 
                 // UI 업데이트
@@ -291,18 +235,85 @@ class ProxyStatusManager {
 
         const agentsArray = Array.from(this.servers.values());
         
+        // 프록시 서버 상태 확인
+        const isProxyHealthy = window.proxyAPI && window.proxyAPI.isConnected;
+        const statusMessage = this.getStatusMessage(agentsArray.length, isProxyHealthy);
+        
         serversContainer.innerHTML = `
             <h4>
                 <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
                     <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13 3L17 7L2 7L2 9L17 9L13 13L15 15L21 9Z"/>
                 </svg>
-                연결된 Agent (${agentsArray.length})
+                ${statusMessage.title}
             </h4>
             ${agentsArray.length === 0 ? 
-                '<div class="empty-state">연결된 Agent가 없습니다</div>' :
+                `<div class="empty-state">${statusMessage.message}</div>` :
                 agentsArray.map(agent => this.renderAgent(agent)).join('')
             }
         `;
+        
+        // 콘텐츠에 따라 패널 크기 동적 조절
+        this.adjustPanelSize(agentsArray);
+    }
+
+    getStatusMessage(agentCount, isProxyHealthy) {
+        if (!isProxyHealthy) {
+            return {
+                title: '연결 실패',
+                message: '서버에 일시적인 문제가 발생했거나 연결할 수 없습니다'
+            };
+        }
+        
+        if (agentCount === 0) {
+            return {
+                title: '연결됨 (Agent 없음)',
+                message: '서버는 정상이지만 사용 가능한 AI 에이전트가 없습니다'
+            };
+        }
+        
+        return {
+            title: `연결된 Agent (${agentCount})`,
+            message: ''
+        };
+    }
+
+    adjustPanelSize(agentsArray) {
+        const proxyPanel = document.getElementById('proxy-panel');
+        if (!proxyPanel) return;
+
+        if (agentsArray.length === 0) {
+            // 연결 실패시 최소 크기
+            proxyPanel.style.width = '320px';
+            proxyPanel.style.minHeight = 'auto';
+        } else {
+            // Agent 개수에 따른 크기 계산
+            let totalItems = agentsArray.length; // Agent 개수
+            
+            // 확장된 Agent들의 MCP 서버 개수 계산
+            agentsArray.forEach(agent => {
+                if (agent.expanded && agent.mcpServers) {
+                    totalItems += agent.mcpServers.length;
+                    
+                    // 확장된 MCP 서버들의 도구 개수 계산
+                    agent.mcpServers.forEach(mcpServer => {
+                        if (mcpServer.expanded && mcpServer.tools) {
+                            totalItems += Math.ceil(mcpServer.tools.length / 3); // 도구는 3개씩 한 줄
+                        }
+                    });
+                }
+            });
+
+            // 동적 크기 설정
+            const baseWidth = 360; // 너비 증가
+            const baseHeight = 120; // 헤더 + 여백
+            const itemHeight = 48; // 각 항목당 평균 높이
+            
+            const calculatedHeight = baseHeight + (totalItems * itemHeight);
+            const maxHeight = Math.min(calculatedHeight, window.innerHeight - 120);
+
+            proxyPanel.style.width = `${baseWidth}px`;
+            proxyPanel.style.maxHeight = `${maxHeight}px`;
+        }
     }
 
     renderAgent(agent) {
@@ -403,13 +414,11 @@ class ProxyStatusManager {
         const agent = this.servers.get(agentId);
         agent.expanded = !agent.expanded;
         
-        // UI 업데이트
+        // UI 업데이트 (패널 크기 자동 조절 포함)
         this.renderServerList();
         
         // 상태 저장
         this.saveServerStates();
-        
-        console.log(`Agent ${agentId} ${agent.expanded ? '펼침' : '접음'}`);
     }
 
     // MCP 서버 확장/축소
@@ -424,13 +433,11 @@ class ProxyStatusManager {
         
         mcpServer.expanded = !mcpServer.expanded;
         
-        // UI 업데이트
+        // UI 업데이트 (패널 크기 자동 조절 포함)
         this.renderServerList();
         
         // 상태 저장
         this.saveServerStates();
-        
-        console.log(`MCP 서버 ${mcpServerId} ${mcpServer.expanded ? '펼침' : '접음'}`);
     }
 
     // Agent 활성화/비활성화
@@ -444,13 +451,11 @@ class ProxyStatusManager {
             agent.enabled = !agent.enabled;
             agent.status = agent.enabled ? 'connected' : 'disconnected';
             
-            console.log(`데모 Agent ${agentId} ${agent.enabled ? '활성화' : '비활성화'}`);
         } else {
             // 실제 Agent 토글 로직 (추후 구현)
-            console.log(`실제 Agent ${agentId} 토글 요청`);
         }
         
-        // UI 업데이트
+        // UI 업데이트 (패널 크기 자동 조절 포함)
         this.renderServerList();
         
         // 상태 저장
@@ -488,8 +493,10 @@ class ProxyStatusManager {
             proxyStatus.classList.add('active');
             proxyPanel.classList.add('active');
             
-            // 패널 열릴 때 상태 새로고침
-            this.refreshStatus();
+            // 패널 열릴 때는 현재 상태만 표시 (연결 시도 안함)
+            this.updateAgentList();
+            this.updateProxyStatus(true); // skipHealthCheck = true
+            this.updateUI();
         } else {
             proxyStatus.classList.remove('active');
             proxyPanel.classList.remove('active');
@@ -532,7 +539,6 @@ class ProxyStatusManager {
                 return { ...server, ...info };
             }
         } catch (error) {
-            console.error(`서버 ${serverId} 정보 조회 실패:`, error);
         }
         
         return server;
@@ -550,12 +556,10 @@ class ProxyStatusManager {
             server.status = 'disconnected';
             server.expanded = false;
             server.tools = [];
-            console.log(`서버 ${server.name} 비활성화됨`);
         } else {
             // ON: 서버 활성화 시도
             server.enabled = true;
             server.status = 'connecting';
-            console.log(`서버 ${server.name} 연결 시도 중...`);
             
             // UI 즉시 업데이트 (주황색 표시)
             this.renderServerList();
@@ -567,16 +571,13 @@ class ProxyStatusManager {
                 if (result.success) {
                     server.status = 'connected';
                     server.tools = result.tools || [];
-                    console.log(`서버 ${server.name} 연결 성공`);
                 } else {
                     server.status = 'error';
                     server.tools = [];
-                    console.log(`서버 ${server.name} 연결 실패:`, result.error);
                 }
             } catch (error) {
                 server.status = 'error';
                 server.tools = [];
-                console.error(`서버 ${server.name} 연결 오류:`, error);
             }
         }
         
@@ -685,14 +686,12 @@ class ProxyStatusManager {
                 }
             }
         } catch (error) {
-            console.error('서버 상태 복원 실패:', error);
         }
     }
 
     // 도구 실행 테스트
     async testTool(toolName) {
         try {
-            console.log(`도구 ${toolName} 테스트 중...`);
             
             if (window.proxyAPI && window.proxyAPI.isConnected) {
                 // Proxy API를 통한 도구 테스트
@@ -706,14 +705,13 @@ class ProxyStatusManager {
                 return false;
             }
         } catch (error) {
-            console.error(`도구 ${toolName} 테스트 실패:`, error);
             return false;
         }
     }
 }
 
-// 전역 함수들
 function toggleProxyPanel() {
+// 전역 함수들
     if (window.proxyStatusManager) {
         window.proxyStatusManager.toggleProxyPanel();
     }
@@ -780,7 +778,6 @@ function toggleServer(serverId) {
 
 async function testTool(toolName, serverId) {
     if (window.proxyStatusManager) {
-        console.log(`도구 테스트: ${toolName} (서버: ${serverId})`);
         
         const success = await window.proxyStatusManager.testTool(toolName);
         

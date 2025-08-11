@@ -1,52 +1,48 @@
 class ProxyAPI {
     constructor() {
         // Proxy 서버 기본 엔드포인트 설정 (API v1)
-        this.baseEndpoint = 'http://localhost:8000/api/v1'; // Proxy 서버 API v1 엔드포인트
-        this.isConnected = false;
+        this.baseEndpoint = 'http://192.168.55.21:8000/api'; // Proxy 서버 API v1 엔드포인트
+        this.isConnected = true;
         this.agents = [];
         this.currentSessionId = null;
         this.init();
     }
 
     async init() {
-        console.log('Proxy API 초기화 중...');
-        
         // Health check로 연결 확인
-        await this.checkHealth();
+        const isConnected = await this.checkHealth();
         
-        // 연결 상태와 관계없이 항상 에이전트 목록 로드 시도
-        // (연결 실패시 데모 데이터 반환)
-        console.log('에이전트 목록 로드 시도... 연결 상태:', this.isConnected);
-        await this.loadAgents();
+        // 연결 성공시에만 에이전트 목록 로드
+        if (isConnected) {
+            await this.loadAgents();
+        }
     }
 
     // Health check API (GET /api/v1/health/)
     async checkHealth() {
         try {
-            const response = await fetch(`${this.baseEndpoint}/health/`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+            const response = await fetch(`${this.baseEndpoint}/health`, {
+                method: 'GET'
+                // Content-Type 헤더 제거로 OPTIONS 요청 방지
             });
-
-            this.isConnected = response.ok;
-            console.log('Proxy 서버 연결 상태:', this.isConnected ? '연결됨' : '연결 실패');
             
             if (response.ok) {
                 // HealthResponse: { status, timestamp, version, uptime, agent_server, queue_status, system_info }
                 const healthData = await response.json();
-                console.log('Health check 응답:', healthData);
+                
+                // status 값으로 실제 연결 상태 판단
+                this.isConnected = (healthData.status === 'healthy');
                 
                 // Agent 서버 상태도 확인
                 if (healthData.agent_server && healthData.agent_server.status !== 'healthy') {
-                    console.warn('Agent 서버 상태 경고:', healthData.agent_server);
+                    this.isConnected = false; // Agent 서버가 unhealthy면 전체를 연결 실패로 처리
                 }
+            } else {
+                this.isConnected = false;
             }
             
             return this.isConnected;
         } catch (error) {
-            console.warn('Proxy 서버 연결 실패:', error.message);
             this.isConnected = false;
             return false;
         }
@@ -56,16 +52,13 @@ class ProxyAPI {
     async loadAgents() {
         try {
             const response = await fetch(`${this.baseEndpoint}/agent/list`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                method: 'GET'
+                // Content-Type 헤더 제거로 OPTIONS 요청 방지
             });
 
             if (response.ok) {
                 const data = await response.json(); // AgentListResponse
                 this.agents = data.agents || [];
-                console.log('에이전트 목록 로드됨:', data);
                 
                 // Proxy 상태 매니저에 업데이트 알림
                 if (window.proxyStatusManager) {
@@ -77,18 +70,20 @@ class ProxyAPI {
                 throw new Error(`에이전트 목록 로드 실패: ${response.status}`);
             }
         } catch (error) {
-            console.error('에이전트 목록 로드 오류:', error);
             
-            // 연결 실패시 데모 데이터 반환 및 저장
-            const demoData = this.getDemoAgentList();
-            this.agents = demoData.agents; // 데모 데이터도 저장
+            // 연결 실패시 빈 배열 반환
+            this.agents = [];
             
             // Proxy 상태 매니저에 업데이트 알림
             if (window.proxyStatusManager) {
                 window.proxyStatusManager.refreshStatus();
             }
             
-            return demoData;
+            return {
+                agents: [],
+                total: 0,
+                error: '프록시 서버에 연결할 수 없습니다'
+            };
         }
     }
 
@@ -110,7 +105,6 @@ class ProxyAPI {
                 user_id: userId || this.generateUserId()
             };
 
-            console.log('채팅 요청 전송:', chatRequest);
 
             const response = await fetch(`${this.baseEndpoint}/agent/chat`, {
                 method: 'POST',
@@ -126,12 +120,10 @@ class ProxyAPI {
 
             // TaskResponse: { task_id: str, status: str, message: str }
             const taskResponse = await response.json();
-            console.log('Task 응답:', taskResponse);
 
             return taskResponse;
 
         } catch (error) {
-            console.error('채팅 메시지 전송 실패:', error);
             throw error;
         }
     }
@@ -140,10 +132,8 @@ class ProxyAPI {
     async getTaskStatus(taskId) {
         try {
             const response = await fetch(`${this.baseEndpoint}/agent/chat/${taskId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                method: 'GET'
+                // Content-Type 헤더 제거로 OPTIONS 요청 방지  
             });
 
             if (!response.ok) {
@@ -152,12 +142,10 @@ class ProxyAPI {
 
             // TaskStatusResponse: { task_id, status, created_at, started_at, completed_at, result, error }
             const taskStatus = await response.json();
-            console.log('Task 상태:', taskStatus);
 
             return taskStatus;
 
         } catch (error) {
-            console.error('Task 상태 조회 실패:', error);
             throw error;
         }
     }
@@ -177,7 +165,6 @@ class ProxyAPI {
                     
                     switch (data.type) {
                         case 'status':
-                            console.log('Task 상태:', data.status, data.message);
                             break;
                             
                         case 'content':
@@ -225,13 +212,11 @@ class ProxyAPI {
                             break;
                     }
                 } catch (parseError) {
-                    console.error('스트림 데이터 파싱 오류:', parseError);
                 }
             };
 
             eventSource.onerror = (error) => {
                 eventSource.close();
-                console.error('SSE 연결 오류:', error);
                 const streamError = new Error('스트리밍 연결이 끊어졌습니다');
                 if (onError) {
                     onError(streamError);
@@ -261,7 +246,6 @@ class ProxyAPI {
                 throw new Error('Task ID를 받지 못했습니다');
             }
 
-            console.log(`Task ${taskResponse.task_id} 생성됨:`, taskResponse);
 
             // 2. SSE 스트리밍으로 결과 받기
             return await this.streamChatTask(
@@ -272,7 +256,6 @@ class ProxyAPI {
             );
 
         } catch (error) {
-            console.error('쿼리 처리 실패:', error);
             
             // 폴백 처리 (기존 데모 방식)
             return this.fallbackProcessing(userQuery, context);
@@ -286,7 +269,6 @@ class ProxyAPI {
 
     // 폴백 처리 (Proxy 서버 연결 실패시)
     async fallbackProcessing(userQuery, context = {}) {
-        console.log('Proxy API 폴백 처리 사용:', userQuery);
         
         const lowerQuery = userQuery.toLowerCase();
         let response = '';
@@ -346,44 +328,6 @@ class ProxyAPI {
         };
     }
 
-    // 데모 Agent 리스트 생성 (AgentListResponse 형태)
-    getDemoAgentList() {
-        const demoAgents = [
-            {
-                id: "portfolio-agent-001",
-                name: "Portfolio Agent",
-                description: "AI 포트폴리오 전문 에이전트 - 사용자 질문에 따라 포트폴리오 섹션으로 안내",
-                status: "active",
-                capabilities: [
-                    "navigate_portfolio",
-                    "analyze_user_intent", 
-                    "content_recommendation",
-                    "page_routing"
-                ]
-            },
-            {
-                id: "blog-management-agent-002", 
-                name: "Blog Management Agent",
-                description: "기술 블로그 관리 및 컨텐츠 생성 전문 에이전트",
-                status: "active",
-                capabilities: [
-                    "create_blog_post",
-                    "edit_content",
-                    "search_articles",
-                    "manage_categories",
-                    "content_analysis"
-                ]
-            }
-        ];
-
-        console.log('데모 Agent 리스트 반환:', demoAgents);
-        
-        return {
-            agents: demoAgents,
-            total: demoAgents.length,
-            error: null
-        };
-    }
 
     // 유틸리티 함수들
     generateUserId() {
@@ -392,16 +336,9 @@ class ProxyAPI {
 
     // 현재 상태 반환
     getStatus() {
-        // 연결되지 않았고 agents가 비어있으면 데모 데이터 사용
-        let agentsToReturn = this.agents;
-        if (!this.isConnected && (!this.agents || this.agents.length === 0)) {
-            const demoData = this.getDemoAgentList();
-            agentsToReturn = demoData.agents;
-        }
-
         return {
             connected: this.isConnected,
-            agents: agentsToReturn,
+            agents: this.agents || [],
             endpoint: this.baseEndpoint,
             sessionId: this.currentSessionId
         };
@@ -416,21 +353,17 @@ class ProxyAPI {
     async getDetailedHealth() {
         try {
             const response = await fetch(`${this.baseEndpoint}/health/detailed`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                method: 'GET'
+                // Content-Type 헤더 제거로 OPTIONS 요청 방지
             });
 
             if (response.ok) {
                 const detailedHealth = await response.json();
-                console.log('상세 Health check 응답:', detailedHealth);
                 return detailedHealth;
             } else {
                 throw new Error(`상세 Health check 실패: ${response.status} ${response.statusText}`);
             }
         } catch (error) {
-            console.error('상세 Health check 오류:', error);
             throw error;
         }
     }
