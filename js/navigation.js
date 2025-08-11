@@ -65,6 +65,12 @@ class NavigationSystem {
             pageContent.style.opacity = '0';
             pageContent.style.transition = 'opacity 0.3s ease';
             
+            // 연결된 Agent 창 숨기기
+            const proxyStatus = document.getElementById('proxy-status');
+            if (proxyStatus) {
+                proxyStatus.style.display = 'none';
+            }
+            
             setTimeout(() => {
                 pageContent.style.opacity = '1';
                 // 플로팅 버튼 표시 (메인 페이지가 아닐 때만)
@@ -109,6 +115,12 @@ class NavigationSystem {
             // 메인 페이지 표시
             mainContainer.style.display = 'flex';
             mainContainer.style.opacity = '0';
+            
+            // 연결된 Agent 창 다시 표시
+            const proxyStatus = document.getElementById('proxy-status');
+            if (proxyStatus) {
+                proxyStatus.style.display = 'flex';
+            }
             
             setTimeout(() => {
                 mainContainer.style.opacity = '1';

@@ -42,6 +42,7 @@ body::before {
     z-index: -1;
 }
 
+
 /* 다크모드 스타일 */
 body.dark-mode {
     color: #e2e8f0;
@@ -539,11 +540,24 @@ body.dark-mode .chat-input input:focus {
     border-color: rgba(102, 126, 234, 0.5);
 }
 
-/* 다크모드 토글 버튼 */
-.theme-toggle {
+/* 상단 제어 패널 */
+.top-controls {
     position: fixed;
     top: 24px;
     right: 24px;
+    display: flex;
+    gap: 12px;
+    z-index: 1001;
+}
+
+/* 페이지 콘텐츠가 표시될 때 연결된 Agent 창 숨기기 */
+.page-content[style*="display: block"] ~ .top-controls .proxy-status,
+.page-content[style*="display: block"] ~ .top-controls .proxy-panel {
+    display: none !important;
+}
+
+/* 다크모드 토글 버튼 */
+.theme-toggle {
     width: 48px;
     height: 48px;
     background: rgba(255, 255, 255, 0.2);
@@ -555,7 +569,6 @@ body.dark-mode .chat-input input:focus {
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1001;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -607,6 +620,492 @@ body.dark-mode .theme-toggle .sun-icon {
 body.dark-mode .theme-toggle .moon-icon {
     opacity: 1;
     transform: rotate(0deg);
+}
+
+/* MCP 상태 표시 */
+.proxy-status {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 24px;
+    padding: 8px 16px 8px 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    min-width: 80px;
+}
+
+.proxy-status:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.proxy-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-light {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d1d5db;
+    transition: all 0.3s ease;
+    /* 색상 없음 - 회색으로 통일 */
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+}
+
+@keyframes pulse-red {
+    0%, 100% { 
+        opacity: 1; 
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+    }
+    50% { 
+        opacity: 0.7; 
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    }
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #2d3748;
+    transition: color 0.3s ease;
+}
+
+.dropdown-arrow {
+    width: 16px;
+    height: 16px;
+    color: #64748b;
+    transition: transform 0.3s ease;
+}
+
+.proxy-status.active .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* MCP 정보 패널 */
+.proxy-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.proxy-panel.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.proxy-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.proxy-panel-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a202c;
+    margin: 0;
+}
+
+.refresh-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.3);
+    transform: rotate(90deg);
+}
+
+.refresh-btn svg {
+    width: 16px;
+    height: 16px;
+    color: #667eea;
+}
+
+.proxy-servers,
+.mcp-tools {
+    padding: 16px 20px;
+}
+
+.proxy-servers h4,
+.mcp-tools h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.server-item {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.5);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.server-item:hover {
+    background: rgba(241, 245, 249, 1);
+    border-color: rgba(203, 213, 225, 0.8);
+}
+
+.server-item.expanded {
+    background: rgba(102, 126, 234, 0.05);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+.server-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.server-main-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: pointer;
+}
+
+.server-toggle {
+    cursor: pointer;
+    padding: 4px;
+}
+
+.server-expand-arrow {
+    width: 16px;
+    height: 16px;
+    color: #64748b;
+    transition: transform 0.3s ease;
+    margin-left: auto;
+}
+
+.server-item.expanded .server-expand-arrow {
+    transform: rotate(180deg);
+}
+
+.server-tools {
+    margin-top: 8px;
+    padding: 0 12px 8px 12px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.server-tools::-webkit-scrollbar {
+    width: 4px;
+}
+
+.server-tools::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+}
+
+.server-tools::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.2);
+    border-radius: 2px;
+}
+
+.server-tools::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.4);
+}
+
+.server-item.expanded .server-tools {
+    opacity: 1;
+    max-height: none;
+    overflow-y: visible;
+}
+
+.tool-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(226, 232, 240, 0.3);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.tool-item:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(102, 126, 234, 0.3);
+    transform: translateX(4px);
+}
+
+.tool-item:last-child {
+    margin-bottom: 0;
+}
+
+.server-status {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+}
+
+.server-status.off {
+    display: none; /* 완전히 숨김 */
+}
+
+.server-status.orange {
+    background: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+    animation: blink 1s infinite;
+}
+
+.server-status.green {
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.server-status.red {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+/* 비활성화된 서버는 기본 스타일 유지 - 라이트만 숨김 */
+
+.server-info {
+    flex: 1;
+}
+
+.server-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a202c;
+    margin-bottom: 2px;
+}
+
+.server-url {
+    font-size: 11px;
+    color: #64748b;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.tool-icon {
+    width: 16px;
+    height: 16px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #667eea;
+    font-weight: 600;
+}
+
+.tool-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a202c;
+}
+
+.tool-description {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+/* 다크모드 MCP 패널 스타일 */
+body.dark-mode .proxy-status {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .proxy-status:hover {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .status-text {
+    color: #e2e8f0;
+}
+
+body.dark-mode .dropdown-arrow {
+    color: #94a3b8;
+}
+
+body.dark-mode .proxy-panel {
+    background: rgba(26, 32, 44, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .proxy-panel-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .proxy-panel-header h3 {
+    color: #e2e8f0;
+}
+
+body.dark-mode .refresh-btn {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .refresh-btn:hover {
+    background: rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.4);
+}
+
+body.dark-mode .proxy-servers h4,
+body.dark-mode .mcp-tools h4 {
+    color: #cbd5e0;
+}
+
+/* 다크모드에서 Agent 및 MCP 서버 텍스트 색상 */
+body.dark-mode .agent-name {
+    color: #e2e8f0;
+}
+
+body.dark-mode .agent-description {
+    color: #a0aec0;
+}
+
+body.dark-mode .mcp-server-name {
+    color: #cbd5e0;
+}
+
+body.dark-mode .mcp-server-url {
+    color: #718096;
+}
+
+body.dark-mode .agent-expand-arrow {
+    color: #a0aec0;
+}
+
+body.dark-mode .mcp-server-expand-arrow {
+    color: #718096;
+}
+
+body.dark-mode .agent-header:hover .agent-expand-arrow {
+    color: #e2e8f0;
+}
+
+body.dark-mode .mcp-server-header:hover .mcp-server-expand-arrow {
+    color: #cbd5e0;
+}
+
+body.dark-mode .server-item {
+    background: rgba(45, 55, 72, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .server-item:hover {
+    background: rgba(45, 55, 72, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .server-item.expanded {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .server-expand-arrow {
+    color: #94a3b8;
+}
+
+body.dark-mode .server-tools {
+    border-left-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .tool-item {
+    background: rgba(26, 32, 44, 0.8);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .tool-item:hover {
+    background: rgba(26, 32, 44, 1);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .server-name,
+body.dark-mode .tool-name {
+    color: #e2e8f0;
+}
+
+body.dark-mode .server-url,
+body.dark-mode .tool-description {
+    color: #94a3b8;
+}
+
+body.dark-mode .tool-icon {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+.empty-state {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    font-style: italic;
+}
+
+body.dark-mode .empty-state {
+    color: #94a3b8;
+}
+
+.tool-info {
+    flex: 1;
 }
 
 
@@ -2225,4 +2724,548 @@ body.dark-mode .post-body a:hover {
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
+}
+
+/* MCP 패널 스크롤바 스타일링 */
+.proxy-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.proxy-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+}
+
+.proxy-panel::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 3px;
+}
+
+.proxy-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.5);
+}
+
+/* 컴팩트 승인 UI */
+.compact-approval {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(20px);
+    max-width: 320px;
+    z-index: 10000;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.compact-approval.active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.compact-approval-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    font-size: 14px;
+    color: #2d3748;
+}
+
+.compact-approval-message .action-icon {
+    font-size: 16px;
+}
+
+.compact-approval-message .action-text {
+    font-weight: 500;
+}
+
+.compact-approval-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.compact-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.compact-btn.reject-btn {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.compact-btn.reject-btn:hover {
+    background: #fecaca;
+    transform: scale(1.1);
+}
+
+.compact-btn.approve-btn {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.compact-btn.approve-btn:hover {
+    background: #bbf7d0;
+    transform: scale(1.1);
+}
+
+/* 다크모드 컴팩트 승인 UI */
+body.dark-mode .compact-approval {
+    background: rgba(45, 55, 72, 0.95);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .compact-approval-message {
+    color: #e2e8f0;
+}
+
+body.dark-mode .compact-btn.reject-btn {
+    background: rgba(220, 38, 38, 0.2);
+    color: #f87171;
+}
+
+body.dark-mode .compact-btn.reject-btn:hover {
+    background: rgba(220, 38, 38, 0.3);
+}
+
+body.dark-mode .compact-btn.approve-btn {
+    background: rgba(22, 163, 74, 0.2);
+    color: #4ade80;
+}
+
+body.dark-mode .compact-btn.approve-btn:hover {
+    background: rgba(22, 163, 74, 0.3);
+}
+
+/* 인라인 승인 UI (AI 메시지 바로 밑) */
+.inline-approval {
+    margin: 8px 0;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.inline-approval.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.inline-approval-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.inline-approval .approval-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    font-size: 14px;
+    color: #2d3748;
+}
+
+.inline-approval .action-icon {
+    font-size: 16px;
+}
+
+.inline-approval .action-text {
+    font-weight: 500;
+}
+
+.inline-approval .approval-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.inline-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.inline-btn.reject-btn {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.inline-btn.reject-btn:hover {
+    background: #fecaca;
+    transform: scale(1.1);
+}
+
+.inline-btn.approve-btn {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.inline-btn.approve-btn:hover {
+    background: #bbf7d0;
+    transform: scale(1.1);
+}
+
+/* 다크모드 인라인 승인 UI */
+body.dark-mode .inline-approval {
+    background: rgba(45, 55, 72, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .inline-approval .approval-message {
+    color: #e2e8f0;
+}
+
+body.dark-mode .inline-btn.reject-btn {
+    background: rgba(220, 38, 38, 0.2);
+    color: #f87171;
+}
+
+body.dark-mode .inline-btn.reject-btn:hover {
+    background: rgba(220, 38, 38, 0.3);
+}
+
+body.dark-mode .inline-btn.approve-btn {
+    background: rgba(22, 163, 74, 0.2);
+    color: #4ade80;
+}
+
+body.dark-mode .inline-btn.approve-btn:hover {
+    background: rgba(22, 163, 74, 0.3);
+}
+
+/* Cursor 스타일 도구 목록 */
+.tool-item-simple {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    font-size: 13px;
+}
+
+.tool-item-simple:hover {
+    background: rgba(255, 255, 255, 0.6);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+.tool-item-simple.disabled {
+    opacity: 0.6;
+}
+
+.tool-item-simple.disabled .tool-name {
+    color: #9ca3af;
+}
+
+.tool-content {
+    flex: 1;
+}
+
+.tool-item-simple .tool-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+.tool-toggle {
+    cursor: pointer;
+    padding: 2px;
+}
+
+.toggle-switch {
+    width: 32px;
+    height: 18px;
+    background: #e5e7eb;
+    border-radius: 9px;
+    position: relative;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch.on {
+    background: #3b82f6;
+    border-color: #2563eb;
+}
+
+.toggle-knob {
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.on .toggle-knob {
+    transform: translateX(14px);
+}
+
+/* 다크모드 도구 목록 */
+body.dark-mode .tool-item-simple {
+    background: rgba(55, 65, 81, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tool-item-simple:hover {
+    background: rgba(55, 65, 81, 0.8);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .tool-item-simple .tool-name {
+    color: #e5e7eb;
+}
+
+body.dark-mode .tool-item-simple.disabled .tool-name {
+    color: #6b7280;
+}
+
+body.dark-mode .toggle-switch {
+    background: #4b5563;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .toggle-switch.on {
+    background: #3b82f6;
+    border-color: #2563eb;
+}
+
+/* 도구 그리드 (태그 형태) */
+.tools-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.tool-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tool-tag:hover {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+/* 다크모드 도구 태그 */
+body.dark-mode .tool-tag {
+    background: rgba(102, 126, 234, 0.2);
+    color: #8b9cf7;
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+body.dark-mode .tool-tag:hover {
+    background: rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.4);
+}
+
+/* 다크모드 비활성화된 서버 스타일 */
+body.dark-mode .server-item.server-disabled .server-name,
+body.dark-mode .server-item.server-disabled .server-url {
+    color: #6b7280;
+}
+
+/* Agent 계층 구조 스타일 */
+.agent-item {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.agent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.agent-header:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.agent-header:hover .agent-expand-arrow {
+    color: #2d3748;
+    transform: scale(1.1);
+}
+
+.agent-main-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.agent-status {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #6b7280;
+    transition: all 0.3s ease;
+}
+
+.agent-info {
+    flex: 1;
+}
+
+.agent-name {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.agent-description {
+    font-size: 12px;
+    color: #718096;
+}
+
+.agent-expand-arrow {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+    color: #4a5568;
+}
+
+.agent-item.expanded .agent-expand-arrow {
+    transform: rotate(180deg);
+}
+
+.agent-mcp-servers {
+    padding: 0 16px 12px 16px;
+    display: none;
+}
+
+.agent-item.expanded .agent-mcp-servers {
+    display: block;
+}
+
+/* MCP 서버 스타일 */
+.mcp-server-item {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    margin-left: 20px;
+    overflow: hidden;
+}
+
+.mcp-server-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.mcp-server-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.mcp-server-header:hover .mcp-server-expand-arrow {
+    color: #4a5568;
+    transform: scale(1.1);
+}
+
+.mcp-server-main-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.mcp-server-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #6b7280;
+}
+
+.mcp-server-info {
+    flex: 1;
+}
+
+.mcp-server-name {
+    font-weight: 500;
+    color: #4a5568;
+    font-size: 13px;
+    margin-bottom: 1px;
+}
+
+.mcp-server-url {
+    font-size: 11px;
+    color: #a0aec0;
+}
+
+.mcp-server-expand-arrow {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.3s ease;
+    color: #718096;
+}
+
+.mcp-server-item.expanded .mcp-server-expand-arrow {
+    transform: rotate(180deg);
+}
+
+.mcp-server-tools {
+    padding: 0 12px 10px 12px;
+    display: none;
+}
+
+.mcp-server-item.expanded .mcp-server-tools {
+    display: block;
+}
+
+.agent-toggle, .mcp-server-toggle {
+    margin-left: 8px;
 }

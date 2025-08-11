@@ -10,7 +10,7 @@ class ApprovalSystem {
     }
 
     createApprovalModal() {
-        // 승인 모달 HTML 생성
+        // 기존 모달과 컴팩트 승인 UI 모두 생성
         const modalHTML = `
             <div id="approval-modal" class="approval-modal" style="display: none;">
                 <div class="approval-modal-overlay" onclick="approvalSystem.cancelAction()"></div>
@@ -45,6 +45,15 @@ class ApprovalSystem {
                     </div>
                 </div>
             </div>
+            
+            <!-- 컴팩트 승인 UI -->
+            <div id="compact-approval" class="compact-approval" style="display: none;">
+                <div class="compact-approval-message" id="compact-approval-message"></div>
+                <div class="compact-approval-buttons">
+                    <button class="compact-btn reject-btn" onclick="approvalSystem.cancelAction()" title="거부">✕</button>
+                    <button class="compact-btn approve-btn" onclick="approvalSystem.approveAction()" title="승인">○</button>
+                </div>
+            </div>
         `;
 
         // 모달을 body에 추가
@@ -73,30 +82,81 @@ class ApprovalSystem {
     }
 
     showApprovalModal(actionId, actionType, actionParams, aiResponse) {
-        const modal = document.getElementById('approval-modal');
-        const aiResponseEl = document.getElementById('approval-ai-response');
-        const actionIconEl = document.getElementById('approval-action-icon');
-        const actionTitleEl = document.getElementById('approval-action-title');
-        const actionDescEl = document.getElementById('approval-action-description');
+        // AI 메시지 바로 밑에 승인 UI 추가
+        this.showInlineApproval(actionId, actionType, actionParams, aiResponse);
+    }
+    
+    showInlineApproval(actionId, actionType, actionParams, aiResponse) {
+        // 기존 승인 UI 제거
+        const existingApproval = document.querySelector('.inline-approval');
+        if (existingApproval) existingApproval.remove();
 
-        // AI 응답 표시
-        aiResponseEl.textContent = aiResponse;
+        // AI 메시지 찾기
+        const aiMessage = document.querySelector('.ai-message');
+        if (!aiMessage) {
+            console.warn('AI 메시지를 찾을 수 없어 폴백 모드 사용');
+            this.showCompactApproval(actionId, actionType, actionParams, aiResponse);
+            return;
+        }
 
         // 액션 정보 설정
         const actionInfo = this.getActionInfo(actionType, actionParams);
-        actionIconEl.textContent = actionInfo.icon;
-        actionTitleEl.textContent = actionInfo.title;
-        actionDescEl.textContent = actionInfo.description;
+        
+        // 인라인 승인 UI 생성
+        const approvalDiv = document.createElement('div');
+        approvalDiv.className = 'inline-approval';
+        approvalDiv.dataset.actionId = actionId;
+        
+        approvalDiv.innerHTML = `
+            <div class="inline-approval-content">
+                <div class="approval-message">
+                    <span class="action-icon">${actionInfo.icon}</span>
+                    <span class="action-text">${actionInfo.description}</span>
+                </div>
+                <div class="approval-buttons">
+                    <button class="inline-btn reject-btn" onclick="approvalSystem.cancelAction()" title="거부">✕</button>
+                    <button class="inline-btn approve-btn" onclick="approvalSystem.approveAction()" title="승인">○</button>
+                </div>
+            </div>
+        `;
 
-        // 현재 액션 ID 저장
-        modal.dataset.actionId = actionId;
-
-        // 모달 표시
-        modal.style.display = 'flex';
+        // AI 메시지 바로 다음에 삽입
+        aiMessage.parentNode.insertBefore(approvalDiv, aiMessage.nextSibling);
         
         // 애니메이션
         setTimeout(() => {
-            modal.classList.add('active');
+            approvalDiv.classList.add('active');
+        }, 10);
+
+        // 자동 타임아웃 (30초)
+        setTimeout(() => {
+            if (this.pendingActions.has(actionId)) {
+                this.cancelAction();
+            }
+        }, 30000);
+    }
+    
+    // 폴백용 기존 컴팩트 승인 UI
+    showCompactApproval(actionId, actionType, actionParams, aiResponse) {
+        const compactApproval = document.getElementById('compact-approval');
+        const messageEl = document.getElementById('compact-approval-message');
+
+        // 액션 정보 설정
+        const actionInfo = this.getActionInfo(actionType, actionParams);
+        messageEl.innerHTML = `
+            <span class="action-icon">${actionInfo.icon}</span>
+            <span class="action-text">${actionInfo.description}</span>
+        `;
+
+        // 현재 액션 ID 저장
+        compactApproval.dataset.actionId = actionId;
+
+        // 컴팩트 UI 표시
+        compactApproval.style.display = 'flex';
+        
+        // 애니메이션
+        setTimeout(() => {
+            compactApproval.classList.add('active');
         }, 10);
 
         // 자동 타임아웃 (30초)
@@ -160,10 +220,18 @@ class ApprovalSystem {
 
     // 액션 승인
     approveAction() {
-        const modal = document.getElementById('approval-modal');
-        const actionId = modal.dataset.actionId;
+        // 인라인 승인 UI 먼저 확인
+        const inlineApproval = document.querySelector('.inline-approval');
+        const compactApproval = document.getElementById('compact-approval');
         
-        if (!this.pendingActions.has(actionId)) {
+        let actionId;
+        if (inlineApproval && inlineApproval.dataset.actionId) {
+            actionId = inlineApproval.dataset.actionId;
+        } else if (compactApproval && compactApproval.dataset.actionId) {
+            actionId = compactApproval.dataset.actionId;
+        }
+        
+        if (!actionId || !this.pendingActions.has(actionId)) {
             console.error('승인할 액션을 찾을 수 없습니다:', actionId);
             return;
         }
@@ -195,8 +263,16 @@ class ApprovalSystem {
 
     // 액션 취소
     cancelAction() {
-        const modal = document.getElementById('approval-modal');
-        const actionId = modal.dataset.actionId;
+        // 인라인 승인 UI 먼저 확인
+        const inlineApproval = document.querySelector('.inline-approval');
+        const compactApproval = document.getElementById('compact-approval');
+        
+        let actionId;
+        if (inlineApproval && inlineApproval.dataset.actionId) {
+            actionId = inlineApproval.dataset.actionId;
+        } else if (compactApproval && compactApproval.dataset.actionId) {
+            actionId = compactApproval.dataset.actionId;
+        }
         
         if (actionId && this.pendingActions.has(actionId)) {
             const action = this.pendingActions.get(actionId);
@@ -223,13 +299,24 @@ class ApprovalSystem {
     }
 
     hideApprovalModal() {
-        const modal = document.getElementById('approval-modal');
-        modal.classList.remove('active');
+        // 인라인 승인 UI 제거
+        const inlineApproval = document.querySelector('.inline-approval');
+        if (inlineApproval) {
+            inlineApproval.classList.remove('active');
+            setTimeout(() => {
+                inlineApproval.remove();
+            }, 300);
+        }
         
-        setTimeout(() => {
-            modal.style.display = 'none';
-            modal.dataset.actionId = '';
-        }, 300);
+        // 컴팩트 승인 UI도 제거 (폴백용)
+        const compactApproval = document.getElementById('compact-approval');
+        if (compactApproval) {
+            compactApproval.classList.remove('active');
+            setTimeout(() => {
+                compactApproval.style.display = 'none';
+                compactApproval.dataset.actionId = '';
+            }, 300);
+        }
     }
 
     // 대기 중인 액션들 정리 (메모리 누수 방지)

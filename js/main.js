@@ -2,9 +2,9 @@ class PortfolioApp {
     constructor() {
         this.chatMessages = [];
         this.isInitialized = false;
-        this.apiEndpoint = 'http://localhost:8080/api/chat'; // API 엔드포인트 설정
+        this.apiEndpoint = 'http://localhost:8000/agent/chat'; // Proxy 서버 엔드포인트 설정
         this.isProcessing = false;
-        this.demoMode = true; // 데모 모드 (API 없이 테스트용)
+        this.demoMode = true; // 데모 모드 (Proxy 서버 없을 때 자동 활성화)
         this.init();
     }
 
@@ -84,12 +84,12 @@ class PortfolioApp {
         try {
             let result;
             
-            if (this.demoMode) {
-                // 데모 모드: MCP 시뮬레이션
-                result = await this.callMCPDemo(query);
+            if (this.demoMode || !window.proxyAPI || !window.proxyAPI.isConnected) {
+                // 데모 모드 또는 Proxy 서버 연결 실패시
+                result = await this.processDemo(query);
             } else {
-                // MCP Agent를 통한 실제 처리
-                result = await window.mcpAgent.processStreamingQuery(query, {
+                // Proxy API를 통한 실제 처리
+                result = await window.proxyAPI.processStreamingQuery(query, {
                     currentPage: 'home',
                     onStream: (content, fullContent) => {
                         this.updateLastAIMessage(fullContent);
@@ -217,73 +217,6 @@ class PortfolioApp {
         }
     }
 
-    async callMCPDemo(query) {
-        // MCP 스타일 데모 응답
-        const lowerQuery = query.toLowerCase();
-        let response = '';
-        let actions = [];
-
-        // 스트리밍 효과 시뮬레이션
-        this.showAIMessage('');
-
-        if (lowerQuery.includes('포트폴리오')) {
-            response = '포트폴리오 페이지로 이동합니다. 프로젝트와 작업 경험을 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'portfolio' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'mcp_demo' }
-            });
-        } else if (lowerQuery.includes('이력서')) {
-            response = '이력서 페이지로 이동합니다. 학력, 경력, 기본 정보를 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'resume' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'mcp_demo' }
-            });
-        } else if (lowerQuery.includes('기술스택') || lowerQuery.includes('기술')) {
-            response = '기술스택 페이지로 이동합니다. 보유한 기술과 역량을 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'skills' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'mcp_demo' }
-            });
-        } else if (lowerQuery.includes('블로그') || lowerQuery.includes('글')) {
-            response = '기술블로그 페이지로 이동합니다. 작성한 글들과 새 글 작성이 가능합니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'blog' },
-                requires_approval: true,
-                metadata: { confidence: 0.95, source: 'mcp_demo' }
-            });
-        } else if (lowerQuery.includes('안녕') || lowerQuery.includes('hello')) {
-            response = '안녕하세요! 김동휘의 포트폴리오에 오신 것을 환영합니다. 포트폴리오, 이력서, 기술스택, 기술블로그 중 어떤 것을 보고 싶으신가요?';
-        } else if (lowerQuery.includes('도움') || lowerQuery.includes('help')) {
-            response = '다음과 같이 말씀해주세요:\n• "포트폴리오를 보여줘"\n• "이력서를 알려줘"\n• "기술스택을 보여줘"\n• "기술블로그를 보여줘"';
-        } else {
-            response = `"${query}"에 대한 답변을 드리겠습니다. 포트폴리오 관련 질문이시라면 구체적으로 "포트폴리오", "이력서", "기술스택", "기술블로그" 중 하나를 언급해주세요.`;
-        }
-
-        // 타이핑 효과 시뮬레이션
-        await this.typeMessage(response);
-
-        // MCP 스타일 결과 반환
-        return {
-            text: response,
-            actions: actions,
-            metadata: {
-                source: 'mcp_demo',
-                timestamp: Date.now(),
-                query_analysis: {
-                    intent: lowerQuery.includes('포트폴리오') || lowerQuery.includes('이력서') || 
-                           lowerQuery.includes('기술') || lowerQuery.includes('블로그') ? 'navigation' : 'general',
-                    confidence: 0.9
-                }
-            }
-        };
-    }
 
     async typeMessage(message) {
         const words = message.split(' ');
@@ -298,89 +231,90 @@ class PortfolioApp {
         }
     }
 
-    async callAIWithSSE(query) {
-        return new Promise((resolve, reject) => {
-            const eventSource = new EventSource(`${this.apiEndpoint}/stream?message=${encodeURIComponent(query)}`);
-            let fullResponse = '';
-            let responseStarted = false;
+    // 데모 처리 함수
+    async processDemo(query) {
+        // 스트리밍 효과를 위해 빈 메시지로 시작
+        this.showAIMessage('');
 
-            eventSource.onmessage = (event) => {
-                if (!responseStarted) {
-                    this.showAIMessage(''); // 빈 메시지로 시작
-                    responseStarted = true;
-                }
+        const lowerQuery = query.toLowerCase();
+        let response = '';
+        let actions = [];
 
-                const data = JSON.parse(event.data);
-                
-                if (data.type === 'content') {
-                    fullResponse += data.content;
-                    this.updateLastAIMessage(fullResponse);
-                } else if (data.type === 'action') {
-                    // AI가 페이지 이동을 요청하는 경우
-                    this.handleAIAction(data.action, data.params);
-                } else if (data.type === 'complete') {
-                    eventSource.close();
-                    resolve(fullResponse);
-                }
-            };
+        // 키워드 기반 응답 생성
+        if (lowerQuery.includes('포트폴리오')) {
+            response = '포트폴리오 페이지로 이동합니다. 프로젝트와 작업 경험을 확인하실 수 있습니다.';
+            actions.push({
+                type: 'navigate',
+                params: { page: 'portfolio' },
+                requires_approval: true,
+                metadata: { confidence: 0.95, source: 'demo' }
+            });
+        } else if (lowerQuery.includes('이력서')) {
+            response = '이력서 페이지로 이동합니다. 학력, 경력, 기본 정보를 확인하실 수 있습니다.';
+            actions.push({
+                type: 'navigate',
+                params: { page: 'resume' },
+                requires_approval: true,
+                metadata: { confidence: 0.95, source: 'demo' }
+            });
+        } else if (lowerQuery.includes('기술스택') || lowerQuery.includes('기술')) {
+            response = '기술스택 페이지로 이동합니다. 보유한 기술과 역량을 확인하실 수 있습니다.';
+            actions.push({
+                type: 'navigate',
+                params: { page: 'skills' },
+                requires_approval: true,
+                metadata: { confidence: 0.95, source: 'demo' }
+            });
+        } else if (lowerQuery.includes('블로그') || lowerQuery.includes('글')) {
+            response = '기술블로그 페이지로 이동합니다. 작성한 글들과 새 글 작성이 가능합니다.';
+            actions.push({
+                type: 'navigate',
+                params: { page: 'blog' },
+                requires_approval: true,
+                metadata: { confidence: 0.95, source: 'demo' }
+            });
+        } else if (lowerQuery.includes('안녕') || lowerQuery.includes('hello') || lowerQuery.includes('hi')) {
+            response = '안녕하세요! 김동휘의 포트폴리오에 오신 것을 환영합니다. 포트폴리오, 이력서, 기술스택, 기술블로그 중 어떤 것을 보고 싶으신가요?';
+        } else if (lowerQuery.includes('도움') || lowerQuery.includes('help')) {
+            response = '다음과 같이 말씀해주세요:\n• "포트폴리오를 보여줘"\n• "이력서를 알려줘"\n• "기술스택을 보여줘"\n• "기술블로그를 보여줘"';
+        } else if (lowerQuery.includes('프로젝트')) {
+            response = '다양한 프로젝트 경험을 포트폴리오에서 확인하실 수 있습니다. 에이전트 기반 시스템, 웹 개발, AI/ML 프로젝트 등을 진행했습니다.';
+            actions.push({
+                type: 'navigate',
+                params: { page: 'portfolio' },
+                requires_approval: true,
+                metadata: { confidence: 0.9, source: 'demo' }
+            });
+        } else if (lowerQuery.includes('연락') || lowerQuery.includes('contact')) {
+            response = '연락처 정보는 이력서 페이지에서 확인하실 수 있습니다. 이메일이나 LinkedIn을 통해 연락 주시면 빠르게 답변드리겠습니다.';
+            actions.push({
+                type: 'navigate',
+                params: { page: 'resume' },
+                requires_approval: true,
+                metadata: { confidence: 0.9, source: 'demo' }
+            });
+        } else {
+            response = `"${query}"에 대한 답변을 드리겠습니다. 포트폴리오 관련 질문이시라면 구체적으로 "포트폴리오", "이력서", "기술스택", "기술블로그" 중 하나를 언급해주세요.
 
-            eventSource.onerror = (error) => {
-                eventSource.close();
-                reject(error);
-            };
-
-            // 타임아웃 설정 (30초)
-            setTimeout(() => {
-                eventSource.close();
-                reject(new Error('응답 시간 초과'));
-            }, 30000);
-        });
-    }
-
-    async callAIFallback(query) {
-        // SSE 실패시 일반 HTTP 요청으로 폴백
-        const response = await fetch(this.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: query })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+💡 **데모 모드**로 실행 중입니다. Proxy 서버가 연결되면 더 정확한 AI 응답을 제공합니다.`;
         }
 
-        const data = await response.json();
-        
-        // AI 응답 표시
-        this.showAIMessage(data.response || '죄송합니다. 응답을 생성할 수 없습니다.');
-        
-        // 액션이 있으면 처리
-        if (data.action) {
-            this.handleAIAction(data.action, data.params);
-        }
-    }
+        // 타이핑 효과 시뮬레이션
+        await this.typeMessage(response);
 
-    handleAIAction(action, params) {
-        console.log('AI 액션 처리:', action, params);
-        
-        switch (action) {
-            case 'navigate':
-                if (params && params.page) {
-                    setTimeout(() => {
-                        navigateToPage(params.page);
-                    }, 1500); // 1.5초 후 페이지 이동
+        return {
+            text: response,
+            actions: actions,
+            metadata: {
+                source: 'demo',
+                timestamp: Date.now(),
+                mode: 'demo_simulation',
+                query_analysis: {
+                    intent: actions.length > 0 ? 'navigation' : 'general',
+                    confidence: 0.9
                 }
-                break;
-            case 'scroll':
-                if (params && params.element) {
-                    document.getElementById(params.element)?.scrollIntoView({ behavior: 'smooth' });
-                }
-                break;
-            default:
-                console.log('알 수 없는 액션:', action);
-        }
+            }
+        };
     }
 
     // UI 헬퍼 함수들
@@ -481,13 +415,15 @@ class PortfolioApp {
         input.value = '';
 
         try {
-            // MCP Agent를 통한 처리
+            // 비동기 작업 처리
             let result;
             
-            if (this.demoMode) {
-                result = await this.callMCPDemo(message);
+            if (this.demoMode || !window.proxyAPI || !window.proxyAPI.isConnected) {
+                // 데모 모드 또는 Proxy 서버 연결 실패시
+                result = await this.processDemo(message);
             } else {
-                result = await window.mcpAgent.processQuery(message, {
+                // Proxy API를 통한 실제 처리
+                result = await window.proxyAPI.processQuery(message, {
                     currentPage: window.navigation?.currentPage || 'unknown',
                     chatContext: true
                 });
@@ -569,26 +505,6 @@ class PortfolioApp {
         }
     }
 
-    generateAIResponse(userMessage) {
-        const lowerMessage = userMessage.toLowerCase();
-        let response = '';
-
-        if (lowerMessage.includes('안녕') || lowerMessage.includes('hello')) {
-            response = '안녕하세요! 김동휘의 포트폴리오에 오신 것을 환영합니다. 무엇을 도와드릴까요?';
-        } else if (lowerMessage.includes('포트폴리오')) {
-            response = '포트폴리오 페이지로 이동하시겠습니까? "포트폴리오"라고 입력하시면 해당 페이지로 이동합니다.';
-        } else if (lowerMessage.includes('기술') || lowerMessage.includes('스킬')) {
-            response = '제가 보유한 기술스택에 대해 궁금하시군요! 기술스택 페이지에서 자세한 정보를 확인하실 수 있습니다.';
-        } else if (lowerMessage.includes('경력') || lowerMessage.includes('이력')) {
-            response = '경력과 이력에 대한 정보는 이력서 페이지에서 확인하실 수 있습니다.';
-        } else if (lowerMessage.includes('블로그') || lowerMessage.includes('글') || lowerMessage.includes('포스트')) {
-            response = '기술블로그에서 제가 작성한 글들을 확인하실 수 있습니다. 새로운 글도 작성할 수 있어요!';
-        } else {
-            response = `"${userMessage}"에 대한 답변을 준비하고 있습니다. 포트폴리오, 이력서, 기술스택, 기술블로그에 대해 질문해보세요!`;
-        }
-
-        this.addChatMessage('ai', response);
-    }
 
     openChat() {
         const chatContainer = document.getElementById('chat-container');
@@ -596,6 +512,11 @@ class PortfolioApp {
         
         chatContainer.style.display = 'flex';
         chatFloatBtn.style.display = 'none';
+        
+        // 채팅 히스토리 동기화
+        if (window.sessionManager) {
+            window.sessionManager.syncToFloatingChat();
+        }
         
         // 애니메이션을 위한 delay
         setTimeout(() => {
