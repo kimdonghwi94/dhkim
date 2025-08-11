@@ -74,12 +74,12 @@ class ProxyStatusManager {
             
             if (isConnected) {
                 const agentCount = status.agents ? status.agents.length : 0;
-                statusText.textContent = `연결 Agent (${agentCount})`;
+                statusText.textContent = `Agent List (${agentCount})`;
             } else {
                 // 연결 실패시 데모 모드 표시 - 데모 Agent 개수 포함
                 const demoAgentCount = this.servers.size;
                 console.log(`데모 모드: Agent 개수 = ${demoAgentCount}, servers 맵:`, this.servers);
-                statusText.textContent = `연결 Agent (${demoAgentCount})`;
+                statusText.textContent = `Agent List (${demoAgentCount})`;
                 // 메인 앱도 데모 모드로 설정
                 if (window.portfolioApp) {
                     window.portfolioApp.demoMode = true;
@@ -91,7 +91,7 @@ class ProxyStatusManager {
             statusLight.className = 'status-light';
             // 에러 발생시도 데모 Agent 개수 표시
             const demoAgentCount = this.servers.size;
-            statusText.textContent = `연결 Agent (${demoAgentCount})`;
+            statusText.textContent = `Agent List (${demoAgentCount})`;
             // 에러 발생시도 데모 모드로 설정
             if (window.portfolioApp) {
                 window.portfolioApp.demoMode = true;

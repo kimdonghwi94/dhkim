@@ -1,89 +1,89 @@
-# 김동휘 에이전트 기반 인터랙티브 포트폴리오 웹사이트
+# Kim Donghwi Agent-Based Interactive Portfolio Website
 
-이 프로젝트는 Proxy 서버를 통한 에이전트 기반 대화형 포트폴리오 웹사이트입니다. 사용자와의 자연어 상호작용을 통해 포트폴리오 정보를 제공하며, 실시간 AI 에이전트와의 소통이 가능합니다.
+This project is an agent-based interactive portfolio website through a Proxy server. It provides portfolio information through natural language interaction with users and enables real-time communication with AI agents.
 
-## 🏗️ 시스템 아키텍처
+## 🏗️ System Architecture
 
-이 프로젝트는 4개의 분리된 저장소로 구성된 마이크로서비스 아키텍처를 사용합니다:
+This project uses a microservice architecture consisting of 4 separate repositories:
 
-1. **웹페이지 Server (현재 저장소)** - GitHub Pages를 통한 정적 웹사이트
-2. **Proxy Server** - FastAPI 기반 중간 서버
-3. **Host Agent Server** - 에이전트 호스팅 서버 
-4. **MCP Server** - Model Context Protocol 서버
+1. **Website Server (Current Repository)** - Static website through GitHub Pages
+2. **Proxy Server** - FastAPI-based intermediate server
+3. **Host Agent Server** - Agent hosting server (A2A Protocol)
+4. **MCP Server** - Model Context Protocol server (Server & Local)
 
 ```mermaid
 graph TD
-    A[웹브라우저] --> B[GitHub Pages<br/>포트폴리오 웹사이트]
+    A[Web Browser] --> B[GitHub Pages<br/>Portfolio Website]
     B --> C[Proxy Server<br/>FastAPI]
     C --> D[Host Agent Server]
     D --> E[MCP Server]
     
-    B -.-> F[세션 관리]
-    C -.-> G[보안 검증]
-    C -.-> H[IP/국가 정보]
+    B -.-> F[Session Management]
+    C -.-> G[Security Verification]
+    C -.-> H[IP/Country Information]
 ```
 
-## 🚀 주요 기능
+## 🚀 Key Features
 
-### 1. 실시간 AI 에이전트 대화
-- **POST /agent/chat**: 사용자 입력을 Proxy 서버로 전송
-- **TaskResponse 반환**: `task_id`, `status`, `message` 포함
-- **SSE 스트리밍**: `/agent/chat/stream/{task_id}`로 실시간 응답 수신
-- 타이핑 효과와 함께 자연스러운 대화 경험
+### 1. Real-time AI Agent Conversation
+- **POST /agent/chat**: Send user input to Proxy server
+- **TaskResponse Return**: Includes `task_id`, `status`, `message`
+- **SSE Streaming**: Real-time response through `/agent/chat/stream/{task_id}`
+- Natural conversation experience with typing effects
 
-### 2. 에이전트 상태 모니터링
-- **GET /agents**: 연결된 에이전트 목록 조회
-- **AgentListResponse**: 각 에이전트의 상태, 도구, 설명 정보
-- 우상단 Proxy 패널에서 실시간 상태 확인
-- 에이전트별 도구(capabilities) 시각화
+### 2. Agent Status Monitoring
+- **GET /agents**: Query connected agent list
+- **AgentListResponse**: Status, tools, and description information for each agent
+- Real-time status check in the top-right Proxy panel
+- Visualization of agent capabilities (tools)
 
-### 3. 보안 및 세션 관리
-- Proxy 서버에서 IP, 국가정보 검증
-- 입력값 보안 검사 및 필터링
-- 세션 기반 대화 컨텍스트 유지
-- 새로고침해도 채팅 기록 보존
+### 3. Security and Session Management
+- IP and country information verification at Proxy server
+- Input value security check and filtering
+- Session-based conversation context maintenance
+- Chat history preservation even after refresh
 
-### 4. 반응형 UI/UX
-- 메인 페이지: 전체 화면 입력창
-- 서브 페이지: 우하단 플로팅 채팅창
-- 다크모드 토글 지원
-- 모바일, 태블릿, 데스크톱 최적화
+### 4. Responsive UI/UX
+- Main page: Full-screen input window
+- Sub pages: Floating chat window at bottom-right
+- Dark mode toggle support
+- Mobile, tablet, desktop optimization
 
-## 📁 파일 구조
+## 📁 File Structure
 
 ```
 dhkim/
-├── README.md                    # 프로젝트 문서
-├── index.html                   # 메인 페이지
+├── README.md                    # Project documentation
+├── index.html                   # Main page
 ├── css/
-│   └── style.css               # 전체 스타일시트
+│   └── style.css               # Main stylesheet
 ├── js/
-│   ├── proxy-api.js            # 🔥 Proxy 서버 API 클라이언트
-│   ├── proxy-status.js         # 🔥 에이전트 상태 관리
-│   ├── main.js                 # 메인 앱 로직
-│   ├── session-manager.js      # 세션 관리
-│   ├── approval-system.js      # 액션 승인 시스템
-│   ├── navigation.js           # 페이지 네비게이션
-│   ├── blog.js                 # 블로그 기능
-│   ├── gradient.js             # 배경 효과
-│   ├── markdown-loader.js      # 마크다운 로더
-│   └── typing.js               # 타이핑 효과
+│   ├── proxy-api.js            # 🔥 Proxy server API client
+│   ├── proxy-status.js         # 🔥 Agent status management
+│   ├── main.js                 # Main app logic
+│   ├── session-manager.js      # Session management
+│   ├── approval-system.js      # Action approval system
+│   ├── navigation.js           # Page navigation
+│   ├── blog.js                 # Blog functionality
+│   ├── gradient.js             # Background effects
+│   ├── markdown-loader.js      # Markdown loader
+│   └── typing.js               # Typing effects
 └── content/
-    ├── portfolio.md            # 포트폴리오 콘텐츠
-    ├── resume.md               # 이력서 콘텐츠
-    └── skills.md               # 기술스택 콘텐츠
+    ├── portfolio.md            # Portfolio content
+    ├── resume.md               # Resume content
+    └── skills.md               # Skills content
 ```
 
-## 🔌 API 명세
+## 🔌 API Specification
 
-### Proxy 서버 연동 API
+### Proxy Server Integration API
 
 #### 1. Health Check
 ```http
 GET http://localhost:8000/health
 ```
 
-#### 2. 에이전트 목록 조회
+#### 2. Query Agent List
 ```http
 GET http://localhost:8000/agents
 ```
@@ -94,7 +94,7 @@ GET http://localhost:8000/agents
     {
       "id": "agent-001",
       "name": "Portfolio Agent", 
-      "description": "포트폴리오 관련 질문 응답",
+      "description": "Responds to portfolio-related questions",
       "status": "online",
       "capabilities": ["navigate", "content_analysis", "recommendation"]
     }
@@ -103,13 +103,13 @@ GET http://localhost:8000/agents
 }
 ```
 
-#### 3. 사용자 입력 전송
+#### 3. Send User Input
 ```http
 POST http://localhost:8000/agent/chat
 Content-Type: application/json
 
 {
-  "message": "포트폴리오를 보여줘",
+  "message": "Show me your portfolio",
   "context": {
     "page": "home",
     "session_id": "session_123",
@@ -128,141 +128,129 @@ Content-Type: application/json
 }
 ```
 
-#### 4. SSE 스트리밍
+#### 4. SSE Streaming
 ```http
 GET http://localhost:8000/agent/chat/stream/{task_id}
 ```
 
 **SSE Events:**
 ```javascript
-// 상태 업데이트
-data: {"type": "status", "status": "processing", "message": "AI 분석 중..."}
+// Status update
+data: {"type": "status", "status": "processing", "message": "AI analyzing..."}
 
-// 콘텐츠 스트리밍  
-data: {"type": "content", "content": "포트폴리오 "}
+// Content streaming  
+data: {"type": "content", "content": "Portfolio "}
 
-// 액션 실행
+// Action execution
 data: {"type": "action", "action": "navigate", "params": {"page": "portfolio"}}
 
-// 완료
+// Complete
 data: {"type": "complete", "metadata": {"processing_time": 2340}}
 ```
 
-## 🛠️ 개발 환경 설정
+## 🛠️ Development Environment Setup
 
-### 1. 로컬 개발 서버 실행
+### 1. Run Local Development Server
 ```bash
-# Python 간이 서버 (포트 3000)
+# Python simple server (port 3000)
 python -m http.server 3000
 
-# 또는 Node.js serve
+# Or Node.js serve
 npx serve -p 3000
 ```
 
-### 2. Proxy 서버 연결
-- Proxy 서버는 `localhost:8000`에서 실행되어야 함
-- 서버 실행 후 웹페이지에서 자동으로 연결 시도
-- 우상단 "Proxy" 표시등으로 연결 상태 확인
+### 2. Proxy Server Connection
+- Proxy server must run on `localhost:8000`
+- Automatic connection attempt from webpage after server start
+- Check connection status with top-right "Proxy" indicator
 
-### 3. 환경 변수 설정
+### 3. Environment Variable Setup
 ```javascript
-// js/proxy-api.js에서 엔드포인트 수정
-this.baseEndpoint = 'http://localhost:8000'; // 개발용
-// this.baseEndpoint = 'https://api.your-domain.com'; // 배포용
+// Modify endpoint in js/proxy-api.js
+this.baseEndpoint = 'http://localhost:8000'; // Development
+// this.baseEndpoint = 'https://api.your-domain.com'; // Production
 ```
 
-## 🎯 사용 방법
+## 🎯 Usage
 
-### 1. 기본 사용법
-1. `index.html`을 웹브라우저에서 열기
-2. Proxy 서버 연결 상태 확인 (우상단)
-3. 메인 화면에서 자연어로 질문 입력
-4. AI 에이전트의 실시간 응답 확인
+### 1. Basic Usage
+1. Open `index.html` in web browser
+2. Check Proxy server connection status (top-right)
+3. Enter questions in natural language on main screen
+4. Check real-time AI agent responses
 
-### 2. 고급 기능
-- **에이전트 상태 모니터링**: 우상단 "Proxy" 클릭
-- **플로팅 채팅**: 서브 페이지에서 우하단 채팅 아이콘
-- **액션 승인**: 페이지 이동 등의 액션에 대한 승인/거부
-- **세션 연속성**: 새로고침해도 대화 이력 유지
+### 2. Advanced Features
+- **Agent Status Monitoring**: Click "Proxy" at top-right
+- **Floating Chat**: Chat icon at bottom-right on sub pages
+- **Action Approval**: Approve/reject actions like page navigation
+- **Session Continuity**: Maintain conversation history even after refresh
 
-## 🔧 설정 파일
+## 🔧 Configuration Files
 
-### 주요 설정값
+### Key Configuration Values
 ```javascript
-// 메인 설정 (js/main.js)
+// Main configuration (js/main.js)
 this.apiEndpoint = 'http://localhost:8000/agent/chat';
 
-// Proxy API 설정 (js/proxy-api.js) 
+// Proxy API configuration (js/proxy-api.js) 
 this.baseEndpoint = 'http://localhost:8000';
 
-// 타임아웃 설정
-const STREAM_TIMEOUT = 60000; // 60초
-const POLLING_INTERVAL = 2000; // 2초
+// Timeout settings
+const STREAM_TIMEOUT = 60000; // 60 seconds
+const POLLING_INTERVAL = 2000; // 2 seconds
 ```
 
-## 🚢 배포 가이드
+## 🚢 Deployment Guide
 
-### GitHub Pages 자동 배포
-1. 이 저장소를 GitHub에 Push
+### GitHub Pages Automatic Deployment
+1. Push this repository to GitHub
 2. Settings → Pages → Source: "Deploy from a branch"
-3. Branch: `main`, Folder: `/ (root)` 선택
-4. 자동으로 `https://[username].github.io/dhkim` 배포
+3. Select Branch: `main`, Folder: `/ (root)`
+4. Automatically deployed to `https://[username].github.io/dhkim`
 
-### 환경별 설정
+### Environment-specific Configuration
 ```javascript
-// 배포 환경에 따른 엔드포인트 자동 설정
+// Automatic endpoint setting by deployment environment
 const isDevelopment = window.location.hostname === 'localhost';
 this.baseEndpoint = isDevelopment 
   ? 'http://localhost:8000'
   : 'https://proxy.your-domain.com';
 ```
 
-## 🧪 테스트
+## 🧪 Testing
 
-### 수동 테스트 시나리오
-1. **연결 테스트**: Proxy 패널에서 에이전트 상태 확인
-2. **대화 테스트**: "안녕하세요" 입력 후 응답 확인  
-3. **네비게이션 테스트**: "포트폴리오를 보여줘" 입력
-4. **스트리밍 테스트**: 긴 응답에서 실시간 스트리밍 확인
-5. **세션 테스트**: 새로고침 후 채팅 기록 보존 확인
+### Manual Test Scenarios
+1. **Connection Test**: Check agent status in Proxy panel
+2. **Conversation Test**: Enter "Hello" and check response  
+3. **Navigation Test**: Enter "Show me your portfolio"
+4. **Streaming Test**: Check real-time streaming with long responses
+5. **Session Test**: Check chat history preservation after refresh
 
-### 디버깅
-- 브라우저 개발자 도구 Console에서 로그 확인
-- Network 탭에서 API 요청/응답 모니터링
-- `window.proxyAPI.getStatus()`로 상태 확인
+### Debugging
+- Check logs in browser Developer Tools Console
+- Monitor API requests/responses in Network tab
+- Check status with `window.proxyAPI.getStatus()`
 
-## 🔒 보안 고려사항
+## 🔒 Security Considerations
 
-- **입력 검증**: Proxy 서버에서 모든 사용자 입력 검증
-- **CORS 설정**: 허용된 도메인에서만 API 접근 가능
-- **Rate Limiting**: 과도한 요청 방지
-- **세션 보안**: 안전한 세션 ID 생성 및 관리
+- **Input Validation**: All user inputs validated at Proxy server
+- **CORS Configuration**: API access only from allowed domains
+- **Rate Limiting**: Prevent excessive requests
+- **Session Security**: Secure session ID generation and management
 
-## 📈 성능 최적화
+## 📈 Performance Optimization
 
-- **지연 로딩**: 필요한 스크립트만 동적 로딩
-- **캐싱 전략**: 정적 리소스 브라우저 캐시 활용
-- **압축**: CSS/JS 파일 최소화
-- **CDN**: 글로벌 배포 시 CDN 활용 고려
+- **Lazy Loading**: Dynamic loading of only necessary scripts
+- **Caching Strategy**: Leverage browser cache for static resources
+- **Compression**: Minimize CSS/JS files
+- **CDN**: Consider CDN for global deployment
 
-## 🤝 기여 가이드
+## 📞 Contact
 
-1. Fork 이 저장소
-2. Feature 브랜치 생성: `git checkout -b feature/new-feature`
-3. 변경사항 커밋: `git commit -am 'Add new feature'`
-4. 브랜치 푸시: `git push origin feature/new-feature`  
-5. Pull Request 생성
-
-## 📄 라이선스
-
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
-## 📞 문의사항
-
-- **개발자**: 김동휘
-- **이메일**: [your-email@example.com]
+- **Developer**: Kim Donghwi
+- **Email**: [kimdonghwi94@gmail.com]
 - **GitHub**: [https://github.com/kimdonghwi94]
 
 ---
 
-> **Note**: 이 웹사이트는 에이전트 기반 대화형 포트폴리오의 프로토타입입니다. Proxy 서버가 실행되지 않은 경우 기본 안내 메시지가 표시됩니다.
+> **Note**: This website is a prototype of an agent-based interactive portfolio. When the Proxy server is not running, default guidance messages will be displayed.
