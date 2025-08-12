@@ -33,15 +33,15 @@
         <!-- 연결 Agent 정보 패널 -->
         <div class="proxy-panel" id="proxy-panel">
             <div class="proxy-panel-header">
-                <h3>Connect Agents</h3>
-                <button class="refresh-btn" onclick="refreshProxyStatus()">
+                <h3>Agents List</h3>
+                <button class="refresh-btn" onclick="refreshProxyStatus()" title="연결 상태 새로고침">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                     </svg>
                 </button>
             </div>
             <div class="proxy-servers" id="proxy-servers">
-                <!-- Agent → MCP 서버 → 도구 계층구조가 동적으로 로드됩니다 -->
+                <!-- AI 에이전트 목록이 동적으로 로드됩니다 -->
             </div>
         </div>
     </div>
@@ -57,11 +57,11 @@
                     <button class="quick-btn" onclick="setPromptText('포트폴리오를 보여줘')">포트폴리오</button>
                     <button class="quick-btn" onclick="setPromptText('이력서를 보여줘')">이력서</button>
                     <button class="quick-btn" onclick="setPromptText('기술스택을 알려줘')">기술스택</button>
-                    <button class="quick-btn" onclick="setPromptText('기술블로그를 보여줘')">기술블로그</button>
+                    <button class="quick-btn" onclick="setPromptText('블로그를 보여줘')">블로그</button>
                 </div>
                 
                 <div class="input-container" id="input-container" style="display: none;">
-                    <input type="text" id="user-input" placeholder="질문이나 원하는 내용을 입력해주세요...">
+                    <input type="text" id="user-input" placeholder="질문이나 원하는 내용을 입력해주세요..." maxlength="1000">
                     <button onclick="handleUserInput()">전송</button>
                 </div>
             </div>
@@ -71,14 +71,14 @@
     <!-- 페이지 콘텐츠 영역 -->
     <div class="page-content" id="page-content" style="display: none;">
         <div class="page-header">
-            <button class="back-btn" onclick="goHome()">← 홈으로</button>
+            <button class="back-btn" onclick="goHome()" title="홈으로 돌아가기">← 홈으로</button>
         </div>
         <div class="page-body" id="page-body">
             <!-- 동적으로 콘텐츠가 로드됩니다 -->
         </div>
         
         <!-- 플로팅 채팅 버튼 -->
-        <div class="chat-float-btn" id="chat-float-btn" onclick="openChat()">
+        <div class="chat-float-btn" id="chat-float-btn" onclick="openChat()" title="AI 채팅 열기">
             <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
             </svg>
@@ -88,11 +88,11 @@
         <div class="chat-container" id="chat-container">
             <div class="chat-header">
                 <span>AI 어시스턴트</span>
-                <button class="chat-close" onclick="closeChat()">×</button>
+                <button class="chat-close" onclick="closeChat()" title="채팅창 닫기">×</button>
             </div>
             <div class="chat-messages" id="chat-messages"></div>
             <div class="chat-input">
-                <input type="text" id="chat-input" placeholder="궁금한 것을 물어보세요...">
+                <input type="text" id="chat-input" placeholder="궁금한 것을 물어보세요..." maxlength="1000">
                 <button onclick="sendChatMessage()">전송</button>
             </div>
         </div>

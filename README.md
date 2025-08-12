@@ -1,6 +1,6 @@
 # Kim Donghwi Agent-Based Interactive Portfolio Website
 
-This project is an agent-based interactive portfolio website through a Proxy server. It provides portfolio information through natural language interaction with users and enables real-time communication with AI agents.
+An intelligent portfolio website powered by AI agents that provides personalized portfolio information through natural language conversations. Features real-time agent communication with fallback support and responsive design.
 
 ## 🏗️ System Architecture
 
@@ -25,29 +25,29 @@ graph TD
 
 ## 🚀 Key Features
 
-### 1. Real-time AI Agent Conversation
-- **POST /agent/chat**: Send user input to Proxy server
-- **TaskResponse Return**: Includes `task_id`, `status`, `message`
-- **SSE Streaming**: Real-time response through `/agent/chat/stream/{task_id}`
-- Natural conversation experience with typing effects
+### 1. Intelligent Agent Communication
+- **Real-time Streaming**: Live responses with typing effects via Server-Sent Events
+- **Fallback System**: Offline keyword-based responses when server unavailable
+- **Session Management**: Persistent conversation context across page refreshes
+- **Timeout Protection**: 8-second connection timeout prevents infinite loading
 
 ### 2. Agent Status Monitoring
-- **GET /agents**: Query connected agent list
-- **AgentListResponse**: Status, tools, and description information for each agent
-- Real-time status check in the top-right Proxy panel
-- Visualization of agent capabilities (tools)
+- **Live Status Display**: Real-time agent connection status in top-right panel
+- **Agent Capabilities**: View available tools and services for each agent
+- **Connection Recovery**: Automatic reconnection attempts with user feedback
+- **Expandable Interface**: Collapsible agent details and tool information
 
-### 3. Security and Session Management
-- IP and country information verification at Proxy server
-- Input value security check and filtering
-- Session-based conversation context maintenance
-- Chat history preservation even after refresh
+### 3. Enhanced User Experience
+- **Responsive Design**: Optimized for mobile, tablet, and desktop
+- **Dark Mode Support**: Toggle between light and dark themes
+- **Accessibility**: Screen reader support with proper ARIA labels and tooltips  
+- **Input Validation**: 1000 character limit with proper error handling
 
-### 4. Responsive UI/UX
-- Main page: Full-screen input window
-- Sub pages: Floating chat window at bottom-right
-- Dark mode toggle support
-- Mobile, tablet, desktop optimization
+### 4. Robust Architecture
+- **Microservice Design**: Separate proxy, agent, and MCP server components
+- **Security First**: Input sanitization and CORS protection
+- **Performance Optimized**: Efficient state management and minimal API calls
+- **Error Handling**: Graceful degradation with informative error messages
 
 ## 📁 File Structure
 
@@ -58,16 +58,16 @@ dhkim/
 ├── css/
 │   └── style.css               # Main stylesheet
 ├── js/
-│   ├── proxy-api.js            # 🔥 Proxy server API client
-│   ├── proxy-status.js         # 🔥 Agent status management
-│   ├── main.js                 # Main app logic
-│   ├── session-manager.js      # Session management
-│   ├── approval-system.js      # Action approval system
-│   ├── navigation.js           # Page navigation
+│   ├── proxy-api.js            # 🔥 Optimized Proxy server API client (refactored)
+│   ├── proxy-status.js         # 🔥 Agent status management (cleaned up)
+│   ├── main.js                 # Main app logic and user interaction
+│   ├── session-manager.js      # Session persistence and management
+│   ├── approval-system.js      # User action approval system
+│   ├── navigation.js           # Page routing and navigation
 │   ├── blog.js                 # Blog functionality
-│   ├── gradient.js             # Background effects
-│   ├── markdown-loader.js      # Markdown loader
-│   └── typing.js               # Typing effects
+│   ├── gradient.js             # Background visual effects
+│   ├── markdown-loader.js      # Dynamic markdown content loader
+│   └── typing.js               # Realistic typing animation effects
 └── content/
     ├── portfolio.md            # Portfolio content
     ├── resume.md               # Resume content
@@ -78,14 +78,14 @@ dhkim/
 
 ### Proxy Server Integration API
 
-#### 1. Health Check
+#### 1. Health Check (with timeout protection)
 ```http
-GET http://localhost:8000/health
+GET http://localhost:8000/api/health
 ```
 
 #### 2. Query Agent List
 ```http
-GET http://localhost:8000/agents
+GET http://localhost:8000/api/agent/list
 ```
 **Response:**
 ```json
@@ -103,9 +103,9 @@ GET http://localhost:8000/agents
 }
 ```
 
-#### 3. Send User Input
+#### 3. Send User Input (with 10000 char limit)
 ```http
-POST http://localhost:8000/agent/chat
+POST http://localhost:8000/api/agent/chat
 Content-Type: application/json
 
 {
@@ -113,7 +113,10 @@ Content-Type: application/json
   "context": {
     "page": "home",
     "session_id": "session_123",
-    "timestamp": 1704067200000
+    "timestamp": 1704067200000,
+    "user_agent": "Mozilla/5.0...",
+    "screen_size": "1920x1080",
+    "dark_mode": false
   },
   "user_id": "user_456"
 }
@@ -128,9 +131,9 @@ Content-Type: application/json
 }
 ```
 
-#### 4. SSE Streaming
+#### 4. SSE Streaming (with 60s timeout)
 ```http
-GET http://localhost:8000/agent/chat/stream/{task_id}
+GET http://localhost:8000/api/agent/chat/stream/{task_id}
 ```
 
 **SSE Events:**
@@ -160,44 +163,49 @@ npx serve -p 3000
 ```
 
 ### 2. Proxy Server Connection
-- Proxy server must run on `localhost:8000`
-- Automatic connection attempt from webpage after server start
-- Check connection status with top-right "Proxy" indicator
+- Current configuration: `192.168.55.21:8000` (update as needed)
+- Connection features: 8-second timeout, automatic retry, graceful fallback
+- Status monitoring: Real-time connection indicator in top-right panel
 
 ### 3. Environment Variable Setup
 ```javascript
-// Modify endpoint in js/proxy-api.js
-this.baseEndpoint = 'http://localhost:8000'; // Development
-// this.baseEndpoint = 'https://api.your-domain.com'; // Production
+// Current endpoint in js/proxy-api.js (update as needed)
+this.baseEndpoint = 'http://192.168.55.21:8000/api'; // Current configuration
+// this.baseEndpoint = 'http://localhost:8000/api';     // Local development  
+// this.baseEndpoint = 'https://api.your-domain.com';   // Production
 ```
 
 ## 🎯 Usage
 
 ### 1. Basic Usage
 1. Open `index.html` in web browser
-2. Check Proxy server connection status (top-right)
-3. Enter questions in natural language on main screen
-4. Check real-time AI agent responses
+2. Check AI Agent connection status (top-right panel)
+3. Enter questions in natural language (1000 char limit)
+4. Experience real-time streaming responses with typing effects
+5. Automatic fallback to offline mode if server unavailable
 
 ### 2. Advanced Features
-- **Agent Status Monitoring**: Click "Proxy" at top-right
-- **Floating Chat**: Chat icon at bottom-right on sub pages
-- **Action Approval**: Approve/reject actions like page navigation
-- **Session Continuity**: Maintain conversation history even after refresh
+- **Agent Status Panel**: Click "Agent Connect" to view available agents and tools
+- **Floating Chat**: Bottom-right chat icon on content pages
+- **Action Approval**: Approve/reject navigation and other actions
+- **Session Persistence**: Conversation history preserved across refreshes
+- **Dark Mode**: Toggle theme with top-left button
 
 ## 🔧 Configuration Files
 
-### Key Configuration Values
+### Key Configuration Values (Updated)
 ```javascript
-// Main configuration (js/main.js)
-this.apiEndpoint = 'http://localhost:8000/agent/chat';
+// Proxy API configuration (js/proxy-api.js)
+this.baseEndpoint = 'http://192.168.55.21:8000/api';
 
-// Proxy API configuration (js/proxy-api.js) 
-this.baseEndpoint = 'http://localhost:8000';
+// Timeout settings (optimized)
+const HEALTH_CHECK_TIMEOUT = 8000;  // 8 seconds (proxy-api.js)
+const CONNECTION_TIMEOUT = 10000;   // 10 seconds (proxy-status.js)  
+const STREAM_TIMEOUT = 60000;       // 60 seconds (streaming)
 
-// Timeout settings
-const STREAM_TIMEOUT = 60000; // 60 seconds
-const POLLING_INTERVAL = 2000; // 2 seconds
+// Input limits
+const MAX_MESSAGE_LENGTH = 10000;   // API limit
+const MAX_INPUT_LENGTH = 1000;      // UI limit
 ```
 
 ## 🚢 Deployment Guide
@@ -219,17 +227,19 @@ this.baseEndpoint = isDevelopment
 
 ## 🧪 Testing
 
-### Manual Test Scenarios
-1. **Connection Test**: Check agent status in Proxy panel
-2. **Conversation Test**: Enter "Hello" and check response  
-3. **Navigation Test**: Enter "Show me your portfolio"
-4. **Streaming Test**: Check real-time streaming with long responses
-5. **Session Test**: Check chat history preservation after refresh
+### Manual Test Scenarios (Updated)
+1. **Connection Test**: Check "Agent Connect" panel, test timeout behavior
+2. **Fallback Test**: Disable server and verify offline keyword responses
+3. **Navigation Test**: Try "포트폴리오를 보여줘" and approve action  
+4. **Streaming Test**: Test long conversations, verify 60s timeout
+5. **Session Test**: Refresh page and verify conversation persistence
+6. **UI Test**: Test dark mode toggle and responsive design
 
-### Debugging
-- Check logs in browser Developer Tools Console
-- Monitor API requests/responses in Network tab
-- Check status with `window.proxyAPI.getStatus()`
+### Debugging (Enhanced)
+- Console logs include connection status and error details
+- Network tab shows optimized API calls with proper timeouts
+- Agent states: `window.proxyAPI.getStatus()` and `window.proxyStatusManager.isConnecting`
+- LocalStorage inspection: Check `agent-states` for UI persistence
 
 ## 🔒 Security Considerations
 
@@ -238,12 +248,13 @@ this.baseEndpoint = isDevelopment
 - **Rate Limiting**: Prevent excessive requests
 - **Session Security**: Secure session ID generation and management
 
-## 📈 Performance Optimization
+## 📈 Performance Optimization (Implemented)
 
-- **Lazy Loading**: Dynamic loading of only necessary scripts
-- **Caching Strategy**: Leverage browser cache for static resources
-- **Compression**: Minimize CSS/JS files
-- **CDN**: Consider CDN for global deployment
+- **Code Refactoring**: Removed duplicate functions and unnecessary API calls
+- **Connection Management**: Smart timeout handling prevents infinite loading
+- **State Optimization**: Efficient agent state management with localStorage
+- **Error Boundaries**: Graceful fallback prevents application crashes
+- **Memory Management**: Proper cleanup of event listeners and timeouts
 
 ## 📞 Contact
 
@@ -253,4 +264,12 @@ this.baseEndpoint = isDevelopment
 
 ---
 
-> **Note**: This website is a prototype of an agent-based interactive portfolio. When the Proxy server is not running, default guidance messages will be displayed.
+## 🔄 Recent Updates (Latest Refactoring)
+
+- **Cleaned Architecture**: Removed unnecessary server connection functions
+- **Enhanced Error Handling**: Added connection timeout protection  
+- **Improved UX**: Better loading states and user feedback
+- **Code Optimization**: Removed duplicate functions, cleaner codebase
+- **Accessibility**: Added tooltips and input limits for better usability
+
+> **Note**: This is an intelligent agent-based portfolio with robust fallback capabilities. The system gracefully handles both online and offline scenarios, providing a seamless user experience regardless of server availability.

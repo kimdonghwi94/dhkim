@@ -212,7 +212,7 @@ class ApprovalSystem {
             'portfolio': '포트폴리오',
             'resume': '이력서',
             'skills': '기술스택',
-            'blog': '기술블로그'
+            'blog': '블로그'
         };
         return pageNames[page] || page;
     }
