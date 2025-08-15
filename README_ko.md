@@ -1,6 +1,6 @@
 # 김동휘 에이전트 기반 인터랙티브 포트폴리오 웹사이트
 
-이 프로젝트는 Proxy 서버를 통한 에이전트 기반 대화형 포트폴리오 웹사이트입니다. 사용자와의 자연어 상호작용을 통해 포트폴리오 정보를 제공하며, 실시간 AI 에이전트와의 소통이 가능합니다.
+AI 에이전트가 제공하는 지능형 포트폴리오 웹사이트입니다. 자연어 대화를 통해 개인화된 포트폴리오 정보를 제공하며, 실시간 에이전트 통신과 폴백 지원, 반응형 디자인을 특징으로 합니다.
 
 ## 🏗️ 시스템 아키텍처
 
@@ -25,29 +25,29 @@ graph TD
 
 ## 🚀 주요 기능
 
-### 1. 실시간 AI 에이전트 대화
-- **POST /agent/chat**: 사용자 입력을 Proxy 서버로 전송
-- **TaskResponse 반환**: `task_id`, `status`, `message` 포함
-- **SSE 스트리밍**: `/agent/chat/stream/{task_id}`로 실시간 응답 수신
-- 타이핑 효과와 함께 자연스러운 대화 경험
+### 1. 지능형 에이전트 통신
+- **실시간 스트리밍**: Server-Sent Events를 통한 타이핑 효과가 있는 실시간 응답
+- **폴백 시스템**: 서버 연결 불가 시 오프라인 키워드 기반 응답
+- **세션 관리**: 페이지 새로고침 후에도 대화 컨텍스트 유지
+- **타임아웃 보호**: 8초 연결 타임아웃으로 무한 로딩 방지
 
 ### 2. 에이전트 상태 모니터링
-- **GET /agents**: 연결된 에이전트 목록 조회
-- **AgentListResponse**: 각 에이전트의 상태, 도구, 설명 정보
-- 우상단 Proxy 패널에서 실시간 상태 확인
-- 에이전트별 도구(capabilities) 시각화
+- **실시간 상태 표시**: 우상단 패널에서 에이전트 연결 상태 확인
+- **에이전트 기능**: 각 에이전트의 사용 가능한 도구와 서비스 확인
+- **연결 복구**: 자동 재연결 시도와 사용자 피드백
+- **확장 가능한 인터페이스**: 접을 수 있는 에이전트 상세 정보와 도구 목록
 
-### 3. 보안 및 세션 관리
-- Proxy 서버에서 IP, 국가정보 검증
-- 입력값 보안 검사 및 필터링
-- 세션 기반 대화 컨텍스트 유지
-- 새로고침해도 채팅 기록 보존
+### 3. 향상된 사용자 경험
+- **반응형 디자인**: 모바일, 태블릿, 데스크톱에 최적화
+- **다크모드 지원**: 라이트/다크 테마 전환
+- **접근성**: 스크린 리더 지원과 적절한 ARIA 레이블 및 툴팁
+- **입력 검증**: 1000자 제한과 적절한 오류 처리
 
-### 4. 반응형 UI/UX
-- 메인 페이지: 전체 화면 입력창
-- 서브 페이지: 우하단 플로팅 채팅창
-- 다크모드 토글 지원
-- 모바일, 태블릿, 데스크톱 최적화
+### 4. 견고한 아키텍처
+- **마이크로서비스 설계**: 별도의 프록시, 에이전트, MCP 서버 컴포넌트
+- **보안 우선**: 입력 검증 및 CORS 보호
+- **성능 최적화**: 효율적인 상태 관리와 최소한의 API 호출
+- **오류 처리**: 정보성 오류 메시지와 우아한 성능 저하
 
 ## 📁 파일 구조
 
@@ -58,16 +58,16 @@ dhkim/
 ├── css/
 │   └── style.css               # 전체 스타일시트
 ├── js/
-│   ├── proxy-api.js            # 🔥 Proxy 서버 API 클라이언트
-│   ├── proxy-status.js         # 🔥 에이전트 상태 관리
-│   ├── main.js                 # 메인 앱 로직
-│   ├── session-manager.js      # 세션 관리
-│   ├── approval-system.js      # 액션 승인 시스템
-│   ├── navigation.js           # 페이지 네비게이션
+│   ├── proxy-api.js            # 🔥 최적화된 Proxy 서버 API 클라이언트 (리팩토링됨)
+│   ├── proxy-status.js         # 🔥 에이전트 상태 관리 (정리됨)
+│   ├── main.js                 # 메인 앱 로직 및 사용자 상호작용
+│   ├── session-manager.js      # 세션 지속성 및 관리
+│   ├── approval-system.js      # 사용자 액션 승인 시스템
+│   ├── navigation.js           # 페이지 라우팅 및 네비게이션
 │   ├── blog.js                 # 블로그 기능
-│   ├── gradient.js             # 배경 효과
-│   ├── markdown-loader.js      # 마크다운 로더
-│   └── typing.js               # 타이핑 효과
+│   ├── gradient.js             # 배경 시각 효과
+│   ├── markdown-loader.js      # 동적 마크다운 콘텐츠 로더
+│   └── typing.js               # 실제적인 타이핑 애니메이션 효과
 └── content/
     ├── portfolio.md            # 포트폴리오 콘텐츠
     ├── resume.md               # 이력서 콘텐츠
@@ -78,14 +78,14 @@ dhkim/
 
 ### Proxy 서버 연동 API
 
-#### 1. Health Check
+#### 1. Health Check (타임아웃 보호 기능)
 ```http
-GET http://localhost:8000/health
+GET http://localhost:8000/api/health
 ```
 
 #### 2. 에이전트 목록 조회
 ```http
-GET http://localhost:8000/agents
+GET http://localhost:8000/api/agent/list
 ```
 **Response:**
 ```json
@@ -103,9 +103,9 @@ GET http://localhost:8000/agents
 }
 ```
 
-#### 3. 사용자 입력 전송
+#### 3. 사용자 입력 전송 (10000자 제한)
 ```http
-POST http://localhost:8000/agent/chat
+POST http://localhost:8000/api/agent/chat
 Content-Type: application/json
 
 {
@@ -113,7 +113,10 @@ Content-Type: application/json
   "context": {
     "page": "home",
     "session_id": "session_123",
-    "timestamp": 1704067200000
+    "timestamp": 1704067200000,
+    "user_agent": "Mozilla/5.0...",
+    "screen_size": "1920x1080",
+    "dark_mode": false
   },
   "user_id": "user_456"
 }
@@ -128,9 +131,9 @@ Content-Type: application/json
 }
 ```
 
-#### 4. SSE 스트리밍
+#### 4. SSE 스트리밍 (60초 타임아웃)
 ```http
-GET http://localhost:8000/agent/chat/stream/{task_id}
+GET http://localhost:8000/api/agent/chat/stream/{task_id}
 ```
 
 **SSE Events:**
@@ -160,44 +163,49 @@ npx serve -p 3000
 ```
 
 ### 2. Proxy 서버 연결
-- Proxy 서버는 `localhost:8000`에서 실행되어야 함
-- 서버 실행 후 웹페이지에서 자동으로 연결 시도
-- 우상단 "Proxy" 표시등으로 연결 상태 확인
+- 현재 설정: `192.168.55.21:8000` (필요시 업데이트)
+- 연결 기능: 8초 타임아웃, 자동 재시도, 우아한 폴백
+- 상태 모니터링: 우상단 패널의 실시간 연결 표시기
 
 ### 3. 환경 변수 설정
 ```javascript
-// js/proxy-api.js에서 엔드포인트 수정
-this.baseEndpoint = 'http://localhost:8000'; // 개발용
-// this.baseEndpoint = 'https://api.your-domain.com'; // 배포용
+// js/proxy-api.js의 현재 엔드포인트 (필요시 업데이트)
+this.baseEndpoint = 'http://192.168.55.21:8000/api'; // 현재 설정
+// this.baseEndpoint = 'http://localhost:8000/api';     // 로컬 개발
+// this.baseEndpoint = 'https://api.your-domain.com';   // 배포용
 ```
 
 ## 🎯 사용 방법
 
 ### 1. 기본 사용법
 1. `index.html`을 웹브라우저에서 열기
-2. Proxy 서버 연결 상태 확인 (우상단)
-3. 메인 화면에서 자연어로 질문 입력
-4. AI 에이전트의 실시간 응답 확인
+2. AI 에이전트 연결 상태 확인 (우상단 패널)
+3. 자연어로 질문 입력 (1000자 제한)
+4. 타이핑 효과가 있는 실시간 스트리밍 응답 경험
+5. 서버 사용 불가 시 자동 오프라인 모드
 
 ### 2. 고급 기능
-- **에이전트 상태 모니터링**: 우상단 "Proxy" 클릭
-- **플로팅 채팅**: 서브 페이지에서 우하단 채팅 아이콘
-- **액션 승인**: 페이지 이동 등의 액션에 대한 승인/거부
-- **세션 연속성**: 새로고침해도 대화 이력 유지
+- **에이전트 상태 패널**: "Agent Connect" 클릭으로 사용 가능한 에이전트와 도구 보기
+- **플로팅 채팅**: 콘텐츠 페이지의 우하단 채팅 아이콘
+- **액션 승인**: 네비게이션 및 기타 액션에 대한 승인/거부
+- **세션 지속성**: 새로고침 후에도 대화 기록 보존
+- **다크모드**: 좌상단 버튼으로 테마 전환
 
 ## 🔧 설정 파일
 
-### 주요 설정값
+### 주요 설정값 (업데이트됨)
 ```javascript
-// 메인 설정 (js/main.js)
-this.apiEndpoint = 'http://localhost:8000/agent/chat';
+// Proxy API 설정 (js/proxy-api.js)
+this.baseEndpoint = 'http://192.168.55.21:8000/api';
 
-// Proxy API 설정 (js/proxy-api.js) 
-this.baseEndpoint = 'http://localhost:8000';
+// 타임아웃 설정 (최적화됨)
+const HEALTH_CHECK_TIMEOUT = 8000;  // 8초 (proxy-api.js)
+const CONNECTION_TIMEOUT = 10000;   // 10초 (proxy-status.js)  
+const STREAM_TIMEOUT = 60000;       // 60초 (스트리밍)
 
-// 타임아웃 설정
-const STREAM_TIMEOUT = 60000; // 60초
-const POLLING_INTERVAL = 2000; // 2초
+// 입력 제한
+const MAX_MESSAGE_LENGTH = 10000;   // API 제한
+const MAX_INPUT_LENGTH = 1000;      // UI 제한
 ```
 
 ## 🚢 배포 가이드
@@ -219,17 +227,19 @@ this.baseEndpoint = isDevelopment
 
 ## 🧪 테스트
 
-### 수동 테스트 시나리오
-1. **연결 테스트**: Proxy 패널에서 에이전트 상태 확인
-2. **대화 테스트**: "안녕하세요" 입력 후 응답 확인  
-3. **네비게이션 테스트**: "포트폴리오를 보여줘" 입력
-4. **스트리밍 테스트**: 긴 응답에서 실시간 스트리밍 확인
-5. **세션 테스트**: 새로고침 후 채팅 기록 보존 확인
+### 수동 테스트 시나리오 (업데이트됨)
+1. **연결 테스트**: "Agent Connect" 패널에서 타임아웃 동작 테스트
+2. **폴백 테스트**: 서버 비활성화 후 오프라인 키워드 응답 확인
+3. **네비게이션 테스트**: "포트폴리오를 보여줘" 입력 후 액션 승인
+4. **스트리밍 테스트**: 긴 대화에서 60초 타임아웃 확인
+5. **세션 테스트**: 페이지 새로고침 후 대화 지속성 확인
+6. **UI 테스트**: 다크모드 토글 및 반응형 디자인 테스트
 
-### 디버깅
-- 브라우저 개발자 도구 Console에서 로그 확인
-- Network 탭에서 API 요청/응답 모니터링
-- `window.proxyAPI.getStatus()`로 상태 확인
+### 디버깅 (향상됨)
+- 콘솔 로그에 연결 상태 및 오류 세부사항 포함
+- Network 탭에서 적절한 타임아웃이 적용된 최적화된 API 호출 확인
+- 에이전트 상태: `window.proxyAPI.getStatus()` 및 `window.proxyStatusManager.isConnecting`
+- LocalStorage 검사: UI 지속성을 위한 `agent-states` 확인
 
 ## 🔒 보안 고려사항
 
@@ -238,12 +248,13 @@ this.baseEndpoint = isDevelopment
 - **Rate Limiting**: 과도한 요청 방지
 - **세션 보안**: 안전한 세션 ID 생성 및 관리
 
-## 📈 성능 최적화
+## 📈 성능 최적화 (구현됨)
 
-- **지연 로딩**: 필요한 스크립트만 동적 로딩
-- **캐싱 전략**: 정적 리소스 브라우저 캐시 활용
-- **압축**: CSS/JS 파일 최소화
-- **CDN**: 글로벌 배포 시 CDN 활용 고려
+- **코드 리팩토링**: 중복 함수 제거 및 불필요한 API 호출 정리
+- **연결 관리**: 스마트 타임아웃 처리로 무한 로딩 방지
+- **상태 최적화**: localStorage를 활용한 효율적인 에이전트 상태 관리
+- **오류 경계**: 우아한 폴백으로 애플리케이션 충돌 방지
+- **메모리 관리**: 이벤트 리스너 및 타임아웃의 적절한 정리
 
 ## 📞 문의사항
 
@@ -253,4 +264,12 @@ this.baseEndpoint = isDevelopment
 
 ---
 
-> **Note**: 이 웹사이트는 에이전트 기반 대화형 포트폴리오의 프로토타입입니다. Proxy 서버가 실행되지 않은 경우 기본 안내 메시지가 표시됩니다.
+## 🔄 최근 업데이트 (최신 리팩토링)
+
+- **정리된 아키텍처**: 불필요한 서버 연결 함수 제거
+- **향상된 오류 처리**: 연결 타임아웃 보호 기능 추가
+- **개선된 UX**: 더 나은 로딩 상태 및 사용자 피드백
+- **코드 최적화**: 중복 함수 제거, 더 깔끔한 코드베이스
+- **접근성**: 더 나은 사용성을 위한 툴팁 및 입력 제한 추가
+
+> **Note**: 이것은 견고한 폴백 기능을 갖춘 지능형 에이전트 기반 포트폴리오입니다. 시스템은 온라인과 오프라인 시나리오 모두를 우아하게 처리하여 서버 가용성과 관계없이 원활한 사용자 경험을 제공합니다.

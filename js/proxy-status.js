@@ -4,6 +4,7 @@ class ProxyStatusManager {
         this.servers = new Map();
         this.tools = new Map();
         this.refreshInterval = null;
+        this.isConnecting = false; // 연결 시도 중인지 추적
         this.init();
     }
 
@@ -38,6 +39,13 @@ class ProxyStatusManager {
     }
 
     async refreshStatus() {
+        // 이미 연결 시도 중이면 무시
+        if (this.isConnecting) {
+            return;
+        }
+        
+        this.isConnecting = true;
+        
         try {
             // 연결 확인 중 표시
             const statusLight = document.getElementById('status-light');
@@ -45,7 +53,7 @@ class ProxyStatusManager {
             
             if (statusLight && statusText) {
                 statusLight.className = 'status-light connecting orange';
-                statusText.textContent = 'Agent List (연결 확인 중...)';
+                statusText.textContent = 'Agent Connect (연결 확인 중...)';
             }
             
             if (window.proxyAPI) {
@@ -67,6 +75,8 @@ class ProxyStatusManager {
             await this.updateAgentList();
             await this.updateProxyStatus(true);
             this.updateUI();
+        } finally {
+            this.isConnecting = false;
         }
     }
 
@@ -88,16 +98,21 @@ class ProxyStatusManager {
                 } else {
                     // 연결 확인 중 상태 표시
                     statusLight.className = 'status-light connecting orange';
-                    statusText.textContent = 'Agent List (연결 확인 중...)';
+                    statusText.textContent = 'Agent Connect (연결 확인 중...)';
                     
                     try {
-                        // 상세한 health check 수행
-                        const healthCheck = await window.proxyAPI.checkHealth();
+                        // 타임아웃을 추가한 health check 수행
+                        const healthCheckPromise = window.proxyAPI.checkHealth();
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Connection timeout')), 10000)
+                        );
+                        
+                        const healthCheck = await Promise.race([healthCheckPromise, timeoutPromise]);
                         isConnected = healthCheck;
                         status = window.proxyAPI.getStatus();
                         
-                        // 상세 health check는 불필요하므로 제거
                     } catch (healthError) {
+                        console.log('Health check failed:', healthError.message);
                         isConnected = false;
                         status = { agents: [] };
                     }
@@ -108,17 +123,17 @@ class ProxyStatusManager {
             if (isConnected) {
                 statusLight.className = 'status-light connected green';
                 const agentCount = status.agents ? status.agents.length : 0;
-                statusText.textContent = `Agent List (${agentCount})`;
+                statusText.textContent = `Agent Connect (${agentCount})`;
             } else {
                 // 연결 실패시 빨간색 표시
                 statusLight.className = 'status-light error red';
-                statusText.textContent = `Agent List (0)`;
+                statusText.textContent = `Agent Connect (연결 실패)`;
             }
             
         } catch (error) {
             // 에러 발생시도 빨간색 표시
             statusLight.className = 'status-light error red';
-            statusText.textContent = `Agent List (0)`;
+            statusText.textContent = `Agent Connect (연결 실패)`;
         }
     }
 
@@ -173,40 +188,6 @@ class ProxyStatusManager {
     }
 
 
-    
-    // 활성화된 서버들의 연결 상태 자동 확인
-    async checkActiveServers() {
-        
-        for (const [serverId, server] of this.servers.entries()) {
-            if (server.enabled) {
-                
-                // 연결 중 상태로 변경
-                server.status = 'connecting';
-                this.renderServerList();
-                
-                try {
-                    // API 호출
-                    const result = await this.connectToServer(serverId);
-                    
-                    if (result.success) {
-                        server.status = 'connected';
-                        server.tools = result.tools || [];
-                    } else {
-                        server.status = 'error';
-                        server.tools = [];
-                    }
-                } catch (error) {
-                    server.status = 'error';
-                    server.tools = [];
-                }
-                
-                // UI 업데이트
-                this.renderServerList();
-                this.saveServerStates();
-            }
-        }
-    }
-
 
     updateUI() {
         this.renderServerList();
@@ -260,7 +241,7 @@ class ProxyStatusManager {
         if (!isProxyHealthy) {
             return {
                 title: '연결 실패',
-                message: '서버에 일시적인 문제가 발생했거나 연결할 수 없습니다'
+                message: '서버가 연결되지 않았거나 응답하지 않습니다'
             };
         }
         
@@ -462,10 +443,6 @@ class ProxyStatusManager {
         this.saveServerStates();
     }
 
-    // 기존 함수 (하위 호환성)
-    toggleServerTools(serverId) {
-        this.toggleAgentExpand(serverId);
-    }
 
     startPeriodicRefresh() {
         // 주기적 새로고침 비활성화 - 수동으로만 새로고침
@@ -486,6 +463,11 @@ class ProxyStatusManager {
         const proxyPanel = document.getElementById('proxy-panel');
         
         if (!proxyStatus || !proxyPanel) return;
+
+        // 연결 시도 중일 때는 패널 토글 차단
+        if (this.isConnecting) {
+            return;
+        }
 
         this.isVisible = !this.isVisible;
         
@@ -516,176 +498,40 @@ class ProxyStatusManager {
         }
     }
 
-    // 서버별 세부 정보 가져오기
-    async getServerDetails(serverId) {
-        if (!this.servers.has(serverId)) return null;
-        
-        const server = this.servers.get(serverId);
-        
-        try {
-            if (server.type === 'demo') {
-                return {
-                    ...server,
-                    uptime: '00:00:00',
-                    version: 'Demo v1.0.0',
-                    lastPing: Date.now()
-                };
-            }
-            
-            // 실제 서버 정보 조회
-            const response = await fetch(`${server.url}/info`);
-            if (response.ok) {
-                const info = await response.json();
-                return { ...server, ...info };
-            }
-        } catch (error) {
-        }
-        
-        return server;
-    }
 
-    // 서버 토글
-    async toggleServer(serverId) {
-        if (!this.servers.has(serverId)) return;
-        
-        const server = this.servers.get(serverId);
-        
-        if (server.enabled) {
-            // OFF: 서버 비활성화
-            server.enabled = false;
-            server.status = 'disconnected';
-            server.expanded = false;
-            server.tools = [];
-        } else {
-            // ON: 서버 활성화 시도
-            server.enabled = true;
-            server.status = 'connecting';
-            
-            // UI 즉시 업데이트 (주황색 표시)
-            this.renderServerList();
-            
-            try {
-                // API 호출
-                const result = await this.connectToServer(serverId);
-                
-                if (result.success) {
-                    server.status = 'connected';
-                    server.tools = result.tools || [];
-                } else {
-                    server.status = 'error';
-                    server.tools = [];
-                }
-            } catch (error) {
-                server.status = 'error';
-                server.tools = [];
-            }
-        }
-        
-        // UI 업데이트
-        this.renderServerList();
-        
-        // 상태 저장
-        this.saveServerStates();
-    }
     
-    // 서버 연결 API 호출
-    async connectToServer(serverId) {
-        const server = this.servers.get(serverId);
-        
-        if (server.type === 'demo') {
-            // 데모 모드: 시뮬레이션
-            await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5초 대기
-            
-            // 90% 확률로 성공, 10% 확률로 실패 (테스트용)
-            const isSuccess = Math.random() > 0.1;
-            
-            if (isSuccess) {
-                return {
-                    success: true,
-                    tools: [
-                        { name: 'navigate' },
-                        { name: 'intent_analysis' },
-                        { name: 'content_generation' },
-                        { name: 'session_management' }
-                    ]
-                };
-            } else {
-                return {
-                    success: false,
-                    error: 'Demo connection failed (random test)'
-                };
-            }
-        } else {
-            // 실제 API 호출
-            try {
-                const response = await fetch(`${server.url}/connect`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        server_id: serverId
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                return {
-                    success: data.status === 'success',
-                    tools: data.tools || [],
-                    error: data.error
-                };
-            } catch (error) {
-                return {
-                    success: false,
-                    error: error.message
-                };
-            }
-        }
-    }
-    
-    // 서버 상태 저장
+    // Agent 상태 저장
     saveServerStates() {
-        const serverStates = {};
-        for (const [serverId, server] of this.servers.entries()) {
-            serverStates[serverId] = {
-                enabled: server.enabled,
-                expanded: server.expanded,
-                status: server.status,
-                tools: server.tools
+        const agentStates = {};
+        for (const [agentId, agent] of this.servers.entries()) {
+            agentStates[agentId] = {
+                enabled: agent.enabled,
+                expanded: agent.expanded
             };
         }
-        localStorage.setItem('mcp-server-states', JSON.stringify(serverStates));
+        localStorage.setItem('agent-states', JSON.stringify(agentStates));
     }
     
-    // 서버 상태 복원
+    // Agent 상태 복원
     loadServerStates() {
         try {
-            const saved = localStorage.getItem('mcp-server-states');
+            const saved = localStorage.getItem('agent-states');
             if (saved) {
-                const serverStates = JSON.parse(saved);
-                for (const [serverId, server] of this.servers.entries()) {
-                    if (serverStates[serverId]) {
-                        const savedState = serverStates[serverId];
+                const agentStates = JSON.parse(saved);
+                for (const [agentId, agent] of this.servers.entries()) {
+                    if (agentStates[agentId]) {
+                        const savedState = agentStates[agentId];
                         if (savedState.enabled !== undefined) {
-                            server.enabled = savedState.enabled;
+                            agent.enabled = savedState.enabled;
                         }
                         if (savedState.expanded !== undefined) {
-                            server.expanded = savedState.expanded;
-                        }
-                        if (savedState.status !== undefined) {
-                            server.status = savedState.status;
-                        }
-                        if (savedState.tools !== undefined) {
-                            server.tools = savedState.tools;
+                            agent.expanded = savedState.expanded;
                         }
                     }
                 }
             }
         } catch (error) {
+            console.warn('Agent 상태 복원 실패:', error);
         }
     }
 
@@ -719,6 +565,11 @@ function toggleProxyPanel() {
 
 async function refreshProxyStatus() {
     if (window.proxyStatusManager) {
+        // 이미 연결 시도 중이면 무시
+        if (window.proxyStatusManager.isConnecting) {
+            return;
+        }
+        
         // 새로고침 버튼 애니메이션 시작
         const refreshBtn = document.querySelector('.refresh-btn');
         if (refreshBtn) {
