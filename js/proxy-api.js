@@ -1,7 +1,7 @@
 class ProxyAPI {
     constructor() {
         // Proxy 서버 기본 엔드포인트 설정 (API v1)
-        this.baseEndpoint = 'https://agent-gateway.vercel.app/api'; // Proxy 서버 API v1 엔드포인트
+        this.baseEndpoint = 'http://192.168.55.21:8002/api'; // Proxy 서버 API v1 엔드포인트
         this.isConnected = true;
         this.agents = [];
         this.currentSessionId = null;
@@ -34,8 +34,8 @@ class ProxyAPI {
                 this.isConnected = (healthData.status === 'healthy');
                 
                 // Agent 서버 상태도 확인
-                if (healthData.agent_server && healthData.agent_server.status !== 'healthy') {
-                    this.isConnected = false; // Agent 서버가 unhealthy면 전체를 연결 실패로 처리
+                if (healthData.agent_server && Array.isArray(healthData.agent_server)) {
+                  this.isConnected = healthData.agent_server.every(agent => agent.status === 'healthy');
                 }
             } else {
                 this.isConnected = false;
