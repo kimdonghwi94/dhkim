@@ -16,11 +16,13 @@ graph TD
     A[웹브라우저] --> B[GitHub Pages<br/>포트폴리오 웹사이트]
     B --> C[Proxy Server<br/>FastAPI]
     C --> D[Host Agent Server]
-    D --> E[MCP Server]
+    D --> E[Sub Agent Server - A2A]
+    E --> I[MCP Server]
     
     B -.-> F[세션 관리]
     C -.-> G[보안 검증]
     C -.-> H[IP/국가 정보]
+
 ```
 
 ## 🚀 주요 기능

@@ -16,7 +16,8 @@ graph TD
     A[Web Browser] --> B[GitHub Pages<br/>Portfolio Website]
     B --> C[Proxy Server<br/>FastAPI]
     C --> D[Host Agent Server]
-    D --> E[MCP Server]
+    D --> E[Sub Agent Server - A2A]
+    E --> I[MCP Server]
     
     B -.-> F[Session Management]
     C -.-> G[Security Verification]
