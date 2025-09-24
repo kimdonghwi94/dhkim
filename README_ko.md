@@ -9,18 +9,20 @@ AI 에이전트가 제공하는 지능형 포트폴리오 웹사이트입니다.
 1. **웹페이지 Server (현재 저장소)** - GitHub Pages를 통한 정적 웹사이트
 2. **Proxy Server** - FastAPI 기반 중간 서버
 3. **Host Agent Server** - 에이전트 호스팅 서버 (A2A Protocol)
-4. **MCP Server** - Model Context Protocol 서버 (Server & Local)
+4. **MCP Host Server** - Model Context Protocol 서버 (Server & Local)
 
 ```mermaid
 graph TD
     A[웹브라우저] --> B[GitHub Pages<br/>포트폴리오 웹사이트]
     B --> C[Proxy Server<br/>FastAPI]
     C --> D[Host Agent Server]
-    D --> E[MCP Server]
+    D --> E[Sub Agent Server - A2A]
+    E --> I[MCP Server]
     
     B -.-> F[세션 관리]
     C -.-> G[보안 검증]
     C -.-> H[IP/국가 정보]
+
 ```
 
 ## 🚀 주요 기능
