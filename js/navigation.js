@@ -221,9 +221,9 @@ function goHome() {
 }
 
 // 블로그 관련 전역 함수들
-function createNewPost() {
+async function createNewPost() {
     if (window.blogManager) {
-        window.blogManager.createNewPost();
+        await window.blogManager.createNewPost();
     }
 }
 

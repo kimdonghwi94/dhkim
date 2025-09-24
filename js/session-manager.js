@@ -15,7 +15,7 @@ class SessionManager {
         this.chatHistory = [];
         this.currentContext = { page: 'home' };
         
-        console.log('새 세션 시작:', this.sessionId, '현재 페이지:', this.currentContext.page);
+        // New session started
     }
 
     // 기존 localStorage 데이터 정리
@@ -24,7 +24,7 @@ class SessionManager {
             localStorage.removeItem('portfolio_session');
             localStorage.removeItem('portfolio_session_id');
         } catch (error) {
-            console.error('localStorage 정리 실패:', error);
+            // localStorage cleanup failed
         }
     }
 
@@ -40,7 +40,7 @@ class SessionManager {
             lastMessage.sender === sender && 
             lastMessage.content === content && 
             Date.now() - lastMessage.timestamp < 1000) {
-            console.log('중복 메시지 무시:', content.substring(0, 50));
+            // Duplicate message ignored
             return lastMessage;
         }
 
@@ -61,7 +61,7 @@ class SessionManager {
         this.chatHistory.push(message);
         this.saveSession();
         
-        console.log('메시지 추가:', message);
+        // Message added
         return message;
     }
 
@@ -98,7 +98,7 @@ class SessionManager {
     // 세션 저장 (메모리에서만 관리, localStorage 사용 안함)
     saveSession() {
         // 페이지 새로고침시 초기화되도록 localStorage 저장하지 않음
-        console.log(`세션 메모리 저장: 메시지 ${this.chatHistory.length}개, 현재 페이지: ${this.currentContext.page || 'none'}`);
+        // Session memory saved
     }
 
     // 세션 로드 (사용하지 않음 - 매번 새로 시작)
@@ -114,7 +114,7 @@ class SessionManager {
         this.currentContext = {};
         this.saveSession();
         
-        console.log('새 세션 시작:', this.sessionId);
+        // New session started
     }
 
     // 세션 초기화 (메모리에서만)
@@ -122,20 +122,12 @@ class SessionManager {
         this.sessionId = this.generateSessionId();
         this.chatHistory = [];
         this.currentContext = { page: 'home' };
-        console.log('세션이 메모리에서 초기화되었습니다.');
+        // Session initialized in memory
     }
 
     // 개발/디버그용 세션 상태 확인
     debugSession() {
-        console.log('=== 세션 디버그 정보 ===');
-        console.log('세션 ID:', this.sessionId);
-        console.log('현재 컨텍스트:', this.currentContext);
-        console.log('메시지 개수:', this.chatHistory.length);
-        console.log('메시지 목록:');
-        this.chatHistory.forEach((msg, i) => {
-            console.log(`[${i}] ${msg.sender}: "${msg.content.substring(0, 50)}..." (페이지: ${msg.metadata?.page}, 소스: ${msg.metadata?.source})`);
-        });
-        console.log('===================');
+        // Session debug info (disabled)
     }
 
     // 대화 요약 생성 (API용)
@@ -172,7 +164,7 @@ class SessionManager {
     syncToFloatingChat() {
         const currentPage = this.currentContext.page;
         if (!currentPage || currentPage === 'home') {
-            console.log('홈 페이지에서는 플로팅 채팅 동기화 안함');
+            // Home page floating chat sync disabled
             return;
         }
 
@@ -193,17 +185,14 @@ class SessionManager {
         // 플로팅 채팅창에 메시지 표시
         if (window.portfolioApp && typeof window.portfolioApp.loadChatHistory === 'function') {
             window.portfolioApp.loadChatHistory(relevantMessages);
-            console.log(`${currentPage} 페이지 - ${relevantMessages.length}개 메시지 동기화됨`);
+            // Page messages synchronized
         } else {
-            console.warn('portfolioApp.loadChatHistory 함수를 찾을 수 없음');
+            // portfolioApp.loadChatHistory function not found
         }
 
         // 디버그 정보
         if (relevantMessages.length === 0) {
-            console.log('동기화할 메시지가 없음. 전체 메시지:', this.chatHistory.length);
-            this.chatHistory.forEach((msg, i) => {
-                console.log(`[${i}] ${msg.sender}: ${msg.content.substring(0, 50)} (page: ${msg.metadata?.page})`);
-            });
+            // No messages to sync
         }
     }
 }

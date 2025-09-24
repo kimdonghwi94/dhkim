@@ -185,7 +185,7 @@ this.baseEndpoint = 'http://192.168.55.21:8000/api'; // Current configuration
 5. Automatic fallback to offline mode if server unavailable
 
 ### 2. Advanced Features
-- **Agent Status Panel**: Click "Agent Connect" to view available agents and tools
+- **Agent Status Panel**: Click "Agent Server" to view available agents and tools
 - **Floating Chat**: Bottom-right chat icon on content pages
 - **Action Approval**: Approve/reject navigation and other actions
 - **Session Persistence**: Conversation history preserved across refreshes
@@ -228,7 +228,7 @@ this.baseEndpoint = isDevelopment
 ## 🧪 Testing
 
 ### Manual Test Scenarios (Updated)
-1. **Connection Test**: Check "Agent Connect" panel, test timeout behavior
+1. **Connection Test**: Check "Agent Server" panel, test timeout behavior
 2. **Fallback Test**: Disable server and verify offline keyword responses
 3. **Navigation Test**: Try "포트폴리오를 보여줘" and approve action  
 4. **Streaming Test**: Test long conversations, verify 60s timeout

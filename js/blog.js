@@ -82,15 +82,49 @@ class BlogManager {
         return html;
     }
 
-    createNewPost() {
+    async createNewPost() {
+        // API 키 입력 모달 표시
+        const apiKey = await this.requestApiKey();
+        
+        if (!apiKey) {
+            return; // 사용자가 취소한 경우
+        }
+
+        // API 키 검증
+        const isValid = await this.verifyApiKey(apiKey);
+        
+        if (!isValid) {
+            alert('유효하지 않은 API 키입니다.');
+            return;
+        }
+
+        // API 키가 유효한 경우에만 에디터 열기
         this.currentPostId = this.generateId();
         this.isEditing = false;
+        this.currentApiKey = apiKey; // 저장 시 사용하기 위해 보관
         this.openEditor();
     }
 
-    editPost(postId) {
+    async editPost(postId) {
+        // 게시글 비밀번호 확인
+        const password = await this.requestPostPassword();
+        
+        if (!password) {
+            return; // 사용자가 취소한 경우
+        }
+
+        // 비밀번호 검증
+        const isValid = await this.verifyPostPassword(postId, password);
+        
+        if (!isValid) {
+            alert('잘못된 비밀번호입니다.');
+            return;
+        }
+
+        // 비밀번호가 유효한 경우에만 편집 모드로 진입
         this.currentPostId = postId;
         this.isEditing = true;
+        this.currentPostPassword = password; // 저장 시 사용하기 위해 보관
         const post = this.getPost(postId);
         this.openEditor(post);
     }
@@ -115,6 +149,11 @@ class BlogManager {
                     
                     <input type="text" id="post-tags" placeholder="태그를 쉼표로 구분하여 입력하세요 (예: JavaScript, React, CSS)" 
                            value="${post ? post.tags.join(', ') : ''}" class="tags-input">
+                    
+                    ${!this.isEditing ? `
+                    <input type="password" id="post-password" placeholder="게시글 비밀번호를 설정하세요 (편집 시 필요)" 
+                           class="password-input" required>
+                    ` : ''}
                     
                     <div class="editor-wrapper">
                         <div class="editor-tabs">
@@ -161,7 +200,16 @@ class BlogManager {
         }
     }
 
-    savePost() {
+    async savePost() {
+        // 새 글 작성 시에만 API 키 검증 (편집 시에는 검증하지 않음)
+        if (!this.isEditing && this.currentApiKey) {
+            const isStillValid = await this.verifyApiKey(this.currentApiKey);
+            if (!isStillValid) {
+                alert('API 키가 만료되었거나 유효하지 않습니다. 다시 시도해주세요.');
+                return;
+            }
+        }
+
         const title = document.getElementById('post-title').value.trim();
         const content = document.getElementById('post-content').value.trim();
         const tagsInput = document.getElementById('post-tags').value.trim();
@@ -169,6 +217,21 @@ class BlogManager {
         if (!title || !content) {
             alert('제목과 내용을 모두 입력해주세요.');
             return;
+        }
+
+        // 새 글 작성 시 비밀번호 확인
+        let postPassword = null;
+        if (!this.isEditing) {
+            const passwordInput = document.getElementById('post-password');
+            postPassword = passwordInput ? passwordInput.value.trim() : '';
+            
+            if (!postPassword) {
+                alert('게시글 비밀번호를 설정해주세요.');
+                return;
+            }
+        } else {
+            // 편집 모드에서는 기존 비밀번호 사용
+            postPassword = this.currentPostPassword;
         }
         
         const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
@@ -192,11 +255,16 @@ class BlogManager {
             content,
             tags,
             excerpt,
+            password: postPassword, // 비밀번호 추가
             createdAt: this.isEditing ? this.getPost(this.currentPostId).createdAt : Date.now(),
             updatedAt: Date.now()
         };
         
         this.storePost(post);
+        
+        // API 키 및 비밀번호 정보 초기화
+        this.currentApiKey = null;
+        this.currentPostPassword = null;
         
         // 블로그 목록으로 돌아가기
         navigateToPage('blog');
@@ -206,6 +274,9 @@ class BlogManager {
 
     cancelEdit() {
         if (confirm('작성 중인 내용이 사라집니다. 계속하시겠습니까?')) {
+            // API 키 및 비밀번호 정보 초기화
+            this.currentApiKey = null;
+            this.currentPostPassword = null;
             navigateToPage('blog');
         }
     }
@@ -280,6 +351,251 @@ class BlogManager {
         } catch (e) {
             return [];
         }
+    }
+
+    // API 키 입력 요청
+    async requestApiKey() {
+        return new Promise((resolve) => {
+            // 모달 창 생성
+            const modal = document.createElement('div');
+            modal.className = 'api-key-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay">
+                    <div class="modal-content">
+                        <h3>블로그 작성 권한 확인</h3>
+                        <p>새 글을 작성하려면 API 키를 입력해주세요.</p>
+                        <input type="password" id="api-key-input" placeholder="API 키를 입력하세요" class="api-key-input">
+                        <div class="modal-buttons">
+                            <button onclick="this.closest('.api-key-modal').remove(); window.blogApiKeyResolve(null)" class="cancel-btn">취소</button>
+                            <button onclick="window.blogApiKeyResolve(document.getElementById('api-key-input').value)" class="confirm-btn">확인</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 스타일 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                .api-key-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                }
+                
+                .modal-overlay {
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .modal-content {
+                    background: white;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                    max-width: 400px;
+                    width: 90%;
+                }
+                
+                .modal-content h3 {
+                    margin: 0 0 15px 0;
+                    color: #333;
+                }
+                
+                .modal-content p {
+                    margin: 0 0 20px 0;
+                    color: #666;
+                }
+                
+                .api-key-input {
+                    width: 100%;
+                    padding: 12px;
+                    border: 2px solid #ddd;
+                    border-radius: 4px;
+                    margin-bottom: 20px;
+                    font-size: 14px;
+                    box-sizing: border-box;
+                }
+                
+                .api-key-input:focus {
+                    outline: none;
+                    border-color: #667eea;
+                }
+                
+                .modal-buttons {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: flex-end;
+                }
+                
+                .modal-buttons button {
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                
+                .cancel-btn {
+                    background: #f5f5f5;
+                    color: #666;
+                }
+                
+                .cancel-btn:hover {
+                    background: #e0e0e0;
+                }
+                
+                .confirm-btn {
+                    background: #667eea;
+                    color: white;
+                }
+                
+                .confirm-btn:hover {
+                    background: #5a6fd8;
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(modal);
+            
+            // 전역 콜백 함수 설정
+            window.blogApiKeyResolve = (apiKey) => {
+                modal.remove();
+                style.remove();
+                delete window.blogApiKeyResolve;
+                resolve(apiKey);
+            };
+            
+            // 입력 필드에 포커스
+            setTimeout(() => {
+                document.getElementById('api-key-input').focus();
+            }, 100);
+            
+            // Enter 키로 확인
+            document.getElementById('api-key-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    window.blogApiKeyResolve(e.target.value);
+                }
+            });
+        });
+    }
+
+    // 게시글 비밀번호 입력 요청
+    async requestPostPassword() {
+        return new Promise((resolve) => {
+            // 모달 창 생성
+            const modal = document.createElement('div');
+            modal.className = 'post-password-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay">
+                    <div class="modal-content">
+                        <h3>게시글 편집 권한 확인</h3>
+                        <p>이 글을 편집하려면 비밀번호를 입력해주세요.</p>
+                        <input type="password" id="post-password-input" placeholder="게시글 비밀번호를 입력하세요" class="post-password-input">
+                        <div class="modal-buttons">
+                            <button onclick="this.closest('.post-password-modal').remove(); window.postPasswordResolve(null)" class="cancel-btn">취소</button>
+                            <button onclick="window.postPasswordResolve(document.getElementById('post-password-input').value)" class="confirm-btn">확인</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 기존 API 키 모달과 같은 스타일 재사용 (클래스명만 변경)
+            const style = document.createElement('style');
+            style.textContent = `
+                .post-password-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                }
+                
+                .post-password-modal .modal-overlay {
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .post-password-modal .modal-content {
+                    background: white;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                    max-width: 400px;
+                    width: 90%;
+                }
+                
+                .post-password-input {
+                    width: 100%;
+                    padding: 12px;
+                    border: 2px solid #ddd;
+                    border-radius: 4px;
+                    margin-bottom: 20px;
+                    font-size: 14px;
+                    box-sizing: border-box;
+                }
+                
+                .post-password-input:focus {
+                    outline: none;
+                    border-color: #667eea;
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(modal);
+            
+            // 전역 콜백 함수 설정
+            window.postPasswordResolve = (password) => {
+                modal.remove();
+                style.remove();
+                delete window.postPasswordResolve;
+                resolve(password);
+            };
+            
+            // 입력 필드에 포커스
+            setTimeout(() => {
+                document.getElementById('post-password-input').focus();
+            }, 100);
+            
+            // Enter 키로 확인
+            document.getElementById('post-password-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    window.postPasswordResolve(e.target.value);
+                }
+            });
+        });
+    }
+
+    // API 키 검증
+    async verifyApiKey(apiKey) {
+        if (!window.proxyAPI) {
+            // 서버 연결이 없는 경우 간단한 로컬 검증 (개발용)
+            return apiKey === 'dev-key-123'; // 개발 환경용 키
+        }
+        
+        return await window.proxyAPI.verifyBlogApiKey(apiKey);
+    }
+
+    // 게시글 비밀번호 검증
+    async verifyPostPassword(postId, password) {
+        if (!window.proxyAPI) {
+            // 서버 연결이 없는 경우 로컬 저장소에서 검증
+            const post = this.getPost(postId);
+            return post && post.password === password;
+        }
+        
+        return await window.proxyAPI.verifyPostPassword(postId, password);
     }
 
     generateId() {

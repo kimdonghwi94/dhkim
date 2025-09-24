@@ -48,9 +48,12 @@ class TypingAnimation {
         // 잠시 대기
         await this.delay(400);
         
-        // 입력창 표시
-        inputContainerElement.style.display = 'flex';
-        this.fadeIn(inputContainerElement);
+        // 채팅 래퍼 표시
+        const chatWrapper = document.getElementById('chat-wrapper');
+        if (chatWrapper) {
+            chatWrapper.style.display = 'block';
+            this.fadeIn(chatWrapper);
+        }
     }
 
     delay(ms) {

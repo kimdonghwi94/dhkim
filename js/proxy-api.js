@@ -33,13 +33,33 @@ class ProxyAPI {
             if (response.ok) {
                 // HealthResponse: { status, timestamp, version, uptime, agent_server, queue_status, system_info }
                 const healthData = await response.json();
+                // Health check successful
 
                 // status 값으로 실제 연결 상태 판단
                 this.isConnected = (healthData.status === 'healthy');
-                
-                // Agent 서버 상태도 확인
-                if (healthData.agent_server && healthData.agent_server.status !== 'healthy') {
-                    this.isConnected = false; // Agent 서버가 unhealthy면 전체를 연결 실패로 처리
+
+                // health check에서 받은 agent_server 데이터를 agents로 사용
+                if (healthData.agent_server && Array.isArray(healthData.agent_server)) {
+                    // agent_server 배열을 agents 형태로 변환
+                    this.agents = healthData.agent_server.map((agentServer, index) => ({
+                        id: `agent_${index}`,
+                        name: `Agent Server ${index + 1}`,
+                        description: 'AI Agent from Health Check',
+                        status: agentServer.status,
+                        capabilities: ['query_processing', 'response_generation'],
+                        response_time_ms: agentServer.response_time_ms,
+                        details: agentServer.details
+                    }));
+
+                    // Agent 서버 상태도 확인
+                    for (const agentServer of healthData.agent_server) {
+                        if (agentServer.status !== 'healthy') {
+                            this.isConnected = false; // 하나라도 unhealthy면 전체를 연결 실패로 처리
+                            break;
+                        }
+                    }
+                } else {
+                    this.agents = [];
                 }
             } else {
                 this.isConnected = false;
@@ -67,6 +87,7 @@ class ProxyAPI {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log(data)
                 this.agents = data.agents || [];
                 
                 // 상태 매니저 업데이트
@@ -150,66 +171,118 @@ class ProxyAPI {
     // SSE 스트리밍
     async streamChatTask(taskId, onStream, onComplete, onError) {
         return new Promise((resolve, reject) => {
-            const eventSource = new EventSource(`${this.baseEndpoint}/agent/chat/stream/${taskId}`);
-            
+            const streamUrl = `${this.baseEndpoint}/agent/chat/stream/${taskId}`;
+            const eventSource = new EventSource(streamUrl);
+
             let fullResponse = '';
             let actions = [];
             let metadata = {};
 
             eventSource.onmessage = (event) => {
                 try {
+                    // [DONE] 메시지 처리
+                    if (event.data === '[DONE]') {
+                        eventSource.close();
+                        const result = {
+                            text: fullResponse,
+                            actions: actions,
+                            metadata: metadata,
+                            task_id: taskId
+                        };
+
+                        if (onComplete) {
+                            onComplete(result);
+                        }
+                        resolve(result);
+                        return;
+                    }
+
                     const data = JSON.parse(event.data);
-                    
-                    switch (data.type) {
-                        case 'status':
-                            break;
-                            
-                        case 'content':
-                            fullResponse += data.content;
+
+                    // 서버에서 보내는 형식에 맞춰 처리
+                    if (data.text !== undefined) {
+                        // 텍스트 응답 처리 (메모리 이벤트 또는 일반 응답)
+                        const textToAdd = data.event === 'ADD' ? data.text + '\n' : data.text;
+                        fullResponse += textToAdd;
+                        if (onStream) {
+                            onStream(textToAdd, fullResponse);
+                        }
+                    } else if (data.content !== undefined) {
+                        // content 형식 응답
+                        fullResponse += data.content;
+                        if (onStream) {
+                            onStream(data.content, fullResponse);
+                        }
+                    } else if (data.type === 'final') {
+                        // final 타입의 응답 처리
+
+                        // 새로운 응답 형식 처리: data.result.result
+                        if (data.result && data.result.result) {
+                            fullResponse = data.result.result;
                             if (onStream) {
-                                onStream(data.content, fullResponse);
+                                onStream(data.result.result, fullResponse);
                             }
-                            break;
+                        }
+                        // 기존 형식도 지원: data.result.response
+                        else if (data.result && data.result.response) {
+                            fullResponse = data.result.response;
+                            if (onStream) {
+                                onStream(data.result.response, fullResponse);
+                            }
+                        }
+                    } else if (data.type) {
+                        // 기존 type 기반 처리
+                        switch (data.type) {
+                            case 'status':
+                                break;
+
+                            case 'content':
+                                fullResponse += data.content;
+                                if (onStream) {
+                                    onStream(data.content, fullResponse);
+                                }
+                                break;
                             
-                        case 'action':
-                            actions.push({
+                            case 'action':
+                                actions.push({
                                 type: data.action,
                                 params: data.params,
                                 requires_approval: data.requires_approval !== false,
-                                metadata: data.metadata
-                            });
-                            break;
-                            
-                        case 'metadata':
-                            metadata = { ...metadata, ...data.metadata };
-                            break;
-                            
-                        case 'complete':
-                            eventSource.close();
-                            const result = {
-                                text: fullResponse,
-                                actions: actions,
-                                metadata: metadata,
-                                task_id: taskId
-                            };
-                            
-                            if (onComplete) {
-                                onComplete(result);
-                            }
-                            resolve(result);
-                            break;
-                            
-                        case 'error':
-                            eventSource.close();
-                            const error = new Error(data.message || '스트리밍 처리 중 오류 발생');
-                            if (onError) {
-                                onError(error);
-                            }
-                            reject(error);
-                            break;
+                                    metadata: data.metadata
+                                });
+                                break;
+
+                            case 'metadata':
+                                metadata = { ...metadata, ...data.metadata };
+                                break;
+
+                            case 'complete':
+                                eventSource.close();
+                                const result = {
+                                    text: fullResponse,
+                                    actions: actions,
+                                    metadata: metadata,
+                                    task_id: taskId
+                                };
+
+                                if (onComplete) {
+                                    onComplete(result);
+                                }
+                                resolve(result);
+                                break;
+
+                            case 'error':
+                                eventSource.close();
+                                const error = new Error(data.message || '스트리밍 처리 중 오류 발생');
+                                if (onError) {
+                                    onError(error);
+                                }
+                                reject(error);
+                                break;
+                        }
                     }
                 } catch (parseError) {
-                    console.warn('스트리밍 데이터 파싱 오류:', parseError);
+                    // Streaming data parsing error
                 }
             };
 
@@ -236,22 +309,69 @@ class ProxyAPI {
 
     // 통합 쿼리 처리
     async processQuery(userQuery, context = {}) {
+        let taskResponse = null;
         try {
-            const taskResponse = await this.sendChatMessage(userQuery, context);
-            
+            taskResponse = await this.sendChatMessage(userQuery, context);
+
             if (!taskResponse.task_id) {
                 throw new Error('Task ID를 받지 못했습니다');
             }
 
-            return await this.streamChatTask(
+            const result = await this.streamChatTask(
                 taskResponse.task_id,
                 context.onStream,
                 null,
                 null
             );
 
+            // 결과가 비어있으면 task status로 직접 조회
+            if (!result.text || result.text.trim() === '') {
+                try {
+                    const taskStatus = await this.getTaskStatus(taskResponse.task_id);
+
+                    // 새로운 응답 형식 처리
+                    if (taskStatus && taskStatus.result) {
+                        return {
+                            text: taskStatus.result,
+                            actions: [],
+                            metadata: taskStatus.metadata || {},
+                            task_id: taskResponse.task_id
+                        };
+                    }
+                    // 기존 형식도 지원
+                    else if (taskStatus && taskStatus.text) {
+                        return taskStatus;
+                    }
+                } catch (statusError) {
+                    // Task status check failed
+                }
+            }
+
+            return result;
+
         } catch (error) {
-            console.warn('서버 연결 실패, 폴백 모드:', error.message);
+            // 스트림이 실패했지만 task는 성공한 경우 직접 조회 시도
+            if (taskResponse && taskResponse.task_id) {
+                try {
+                    const taskStatus = await this.getTaskStatus(taskResponse.task_id);
+
+                    // 새로운 응답 형식 처리
+                    if (taskStatus && taskStatus.result) {
+                        return {
+                            text: taskStatus.result,
+                            actions: [],
+                            metadata: taskStatus.metadata || {},
+                            task_id: taskResponse.task_id
+                        };
+                    }
+                    // 기존 형식도 지원
+                    else if (taskStatus && taskStatus.text) {
+                        return taskStatus;
+                    }
+                } catch (statusError) {
+                    // Task status check also failed
+                }
+            }
             return this.fallbackProcessing(userQuery, context);
         }
     }
@@ -322,6 +442,57 @@ class ProxyAPI {
         };
     }
 
+
+    // 블로그 API 키 검증
+    async verifyBlogApiKey(apiKey) {
+        try {
+            const response = await fetch(`${this.baseEndpoint}/blog/verify-key`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ api_key: apiKey })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API 키 검증 실패: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return result.valid === true;
+
+        } catch (error) {
+            console.warn('API 키 검증 실패:', error.message);
+            return false;
+        }
+    }
+
+    // 블로그 게시글 비밀번호 검증
+    async verifyPostPassword(postId, password) {
+        try {
+            const response = await fetch(`${this.baseEndpoint}/blog/verify-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    post_id: postId, 
+                    password: password 
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`비밀번호 검증 실패: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return result.valid === true;
+
+        } catch (error) {
+            console.warn('비밀번호 검증 실패:', error.message);
+            return false;
+        }
+    }
 
     // 유틸리티 함수들
     generateUserId() {

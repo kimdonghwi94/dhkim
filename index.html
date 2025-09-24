@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>김동휘 포트폴리오</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <!-- 상단 제어 패널 -->
@@ -60,11 +61,43 @@
                     <button class="quick-btn" onclick="setPromptText('블로그를 보여줘')">블로그</button>
                 </div>
                 
-                <div class="input-container" id="input-container" style="display: none;">
-                    <input type="text" id="user-input" placeholder="질문이나 원하는 내용을 입력해주세요..." maxlength="1000">
-                    <button onclick="handleUserInput()">전송</button>
+                <!-- 통합 채팅 컨테이너 (입력창 + 채팅창) -->
+                <div class="chat-wrapper" id="chat-wrapper" style="display: none;">
+                    <!-- 채팅 메시지 영역 (확장시 표시) -->
+                    <div class="chat-messages-area" id="chat-messages-area">
+                        <div class="chat-header">
+                            <span>AI 어시스턴트와 대화</span>
+                        </div>
+                        <div class="chat-messages-list" id="chat-messages-list"></div>
+                    </div>
+
+                    <!-- 입력 영역 (항상 표시) -->
+                    <div class="chat-input-area" id="chat-input-area">
+                        <input type="text" id="user-input" placeholder="질문이나 원하는 내용을 입력해주세요..." maxlength="1000">
+                        <button onclick="handleUserInput()">전송</button>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 플로팅 채팅 버튼 (전역) -->
+    <div class="chat-float-btn" id="chat-float-btn" onclick="openChat()" title="AI 채팅 열기" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+        </svg>
+    </div>
+
+    <!-- 채팅창 (전역) -->
+    <div class="chat-container" id="chat-container" style="display: none;">
+        <div class="chat-header">
+            <span>AI 어시스턴트</span>
+            <button class="chat-close" onclick="closeChat()" title="채팅창 닫기">×</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" id="chat-input" placeholder="궁금한 것을 물어보세요..." maxlength="1000">
+            <button onclick="sendChatMessage()">전송</button>
         </div>
     </div>
 
@@ -75,26 +108,6 @@
         </div>
         <div class="page-body" id="page-body">
             <!-- 동적으로 콘텐츠가 로드됩니다 -->
-        </div>
-        
-        <!-- 플로팅 채팅 버튼 -->
-        <div class="chat-float-btn" id="chat-float-btn" onclick="openChat()" title="AI 채팅 열기">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
-            </svg>
-        </div>
-
-        <!-- 채팅창 -->
-        <div class="chat-container" id="chat-container">
-            <div class="chat-header">
-                <span>AI 어시스턴트</span>
-                <button class="chat-close" onclick="closeChat()" title="채팅창 닫기">×</button>
-            </div>
-            <div class="chat-messages" id="chat-messages"></div>
-            <div class="chat-input">
-                <input type="text" id="chat-input" placeholder="궁금한 것을 물어보세요..." maxlength="1000">
-                <button onclick="sendChatMessage()">전송</button>
-            </div>
         </div>
     </div>
 

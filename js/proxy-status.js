@@ -53,7 +53,7 @@ class ProxyStatusManager {
             
             if (statusLight && statusText) {
                 statusLight.className = 'status-light connecting orange';
-                statusText.textContent = 'Agent Connect (연결 확인 중...)';
+                statusText.textContent = 'Agent Server (연결 확인 중...)';
             }
             
             if (window.proxyAPI) {
@@ -98,7 +98,7 @@ class ProxyStatusManager {
                 } else {
                     // 연결 확인 중 상태 표시
                     statusLight.className = 'status-light connecting orange';
-                    statusText.textContent = 'Agent Connect (연결 확인 중...)';
+                    statusText.textContent = 'Agent Server (연결 확인 중...)';
                     
                     try {
                         // 타임아웃을 추가한 health check 수행
@@ -112,7 +112,7 @@ class ProxyStatusManager {
                         status = window.proxyAPI.getStatus();
                         
                     } catch (healthError) {
-                        console.log('Health check failed:', healthError.message);
+                        // Health check failed
                         isConnected = false;
                         status = { agents: [] };
                     }
@@ -123,17 +123,17 @@ class ProxyStatusManager {
             if (isConnected) {
                 statusLight.className = 'status-light connected green';
                 const agentCount = status.agents ? status.agents.length : 0;
-                statusText.textContent = `Agent Connect (${agentCount})`;
+                statusText.textContent = `Agent Server (${agentCount})`;
             } else {
                 // 연결 실패시 빨간색 표시
                 statusLight.className = 'status-light error red';
-                statusText.textContent = `Agent Connect (연결 실패)`;
+                statusText.textContent = `Agent Server (연결 실패)`;
             }
             
         } catch (error) {
             // 에러 발생시도 빨간색 표시
             statusLight.className = 'status-light error red';
-            statusText.textContent = `Agent Connect (연결 실패)`;
+            statusText.textContent = `Agent Server (연결 실패)`;
         }
     }
 
@@ -148,31 +148,41 @@ class ProxyStatusManager {
             
             if (status.agents && status.agents.length > 0) {
                 
-                status.agents.forEach(agent => {
-                    // AgentInfo 구조: { id, name, description, status, capabilities }
-                    
-                    this.servers.set(agent.id, {
-                        id: agent.id,
+                status.agents.forEach((agent, index) => {
+                    // AgentInfo 구조: { id, name, description, status, skills }
+                    // Processing agent
+                    const agentId = agent.id || `agent-${index}`;
+
+                    this.servers.set(agentId, {
+                        id: agentId,
                         name: agent.name,
                         url: agent.description || 'AI Agent',
-                        status: agent.status === 'active' ? 'connected' : 'disconnected', 
-                        enabled: agent.status === 'active',
+                        status: agent.status === 'healthy' ? 'connected' : 'disconnected',
+                        enabled: true, // 기본적으로 활성화 상태로 시작
                         type: window.proxyAPI.isConnected ? 'agent' : 'demo-agent',
                         expanded: false,
-                        // MCP 서버들
-                        mcpServers: [
-                            {
-                                id: `${agent.id}-mcp`,
-                                name: `${agent.name} MCP Server`,
-                                url: window.proxyAPI.isConnected ? 'MCP 연결됨' : 'MCP 연결됨 (Demo)',
-                                status: 'connected',
-                                expanded: false,
-                                tools: agent.capabilities ? agent.capabilities.map(cap => ({ name: cap })) : [
-                                    { name: 'query_processing' },
-                                    { name: 'response_generation' }
-                                ]
-                            }
-                        ]
+                        // skills 필드 사용
+                        tools: agent.skills && agent.skills.length > 0 ?
+                            agent.skills.map((skill, toolIndex) => {
+                                let name, description;
+                                if (typeof skill === 'string') {
+                                    name = skill;
+                                    description = `${skill} 기능`;
+                                } else if (skill && typeof skill === 'object') {
+                                    name = skill.name || skill.toString();
+                                    description = skill.description || `${name} 기능`;
+                                } else {
+                                    name = skill.toString();
+                                    description = `${name} 기능`;
+                                }
+                                return {
+                                    id: `${agentId}-tool-${toolIndex}`,
+                                    name: name,
+                                    description: description,
+                                    enabled: true
+                                };
+                            }) :
+                            []  // skills가 없으면 빈 배열
                     });
                 });
             } else {
@@ -227,9 +237,9 @@ class ProxyStatusManager {
                 </svg>
                 ${statusMessage.title}
             </h4>
-            ${agentsArray.length === 0 ? 
+            ${agentsArray.length === 0 ?
                 `<div class="empty-state">${statusMessage.message}</div>` :
-                agentsArray.map(agent => this.renderAgent(agent)).join('')
+                `<div class="agents-list">${agentsArray.map(agent => this.renderAgent(agent)).join('')}</div>`
             }
         `;
         
@@ -269,18 +279,11 @@ class ProxyStatusManager {
         } else {
             // Agent 개수에 따른 크기 계산
             let totalItems = agentsArray.length; // Agent 개수
-            
-            // 확장된 Agent들의 MCP 서버 개수 계산
+
+            // 확장된 Agent들의 도구 개수 계산
             agentsArray.forEach(agent => {
-                if (agent.expanded && agent.mcpServers) {
-                    totalItems += agent.mcpServers.length;
-                    
-                    // 확장된 MCP 서버들의 도구 개수 계산
-                    agent.mcpServers.forEach(mcpServer => {
-                        if (mcpServer.expanded && mcpServer.tools) {
-                            totalItems += Math.ceil(mcpServer.tools.length / 3); // 도구는 3개씩 한 줄
-                        }
-                    });
+                if (agent.expanded && agent.tools) {
+                    totalItems += agent.tools.length;
                 }
             });
 
@@ -317,52 +320,47 @@ class ProxyStatusManager {
                         </div>
                     </div>
                 </div>
-                <div class="agent-mcp-servers">
-                    ${!agent.enabled ? '' : 
-                        !agent.mcpServers || agent.mcpServers.length === 0 ? 
-                            '<div class="empty-state">연결된 MCP 서버가 없습니다</div>' :
-                            agent.mcpServers.map(mcpServer => this.renderMCPServer(mcpServer, agent.id)).join('')
-                    }
-                </div>
+                ${agent.expanded ?
+                    `<div class="agent-tools">
+                        ${!agent.enabled ? '' :
+                            !agent.tools || agent.tools.length === 0 ?
+                                '<div class="empty-state">사용 가능한 도구가 없습니다</div>' :
+                                `<div class="tools-list">
+                                    ${agent.tools.map(tool => this.renderTool(tool, agent.id)).join('')}
+                                </div>`
+                        }
+                    </div>` : ''
+                }
             </div>
         `;
     }
 
-    renderMCPServer(mcpServer, agentId) {
+    renderTool(tool, agentId) {
+        const description = tool.description || `${tool.name} 기능`;
         return `
-            <div class="mcp-server-item ${mcpServer.expanded ? 'expanded' : ''}">
-                <div class="mcp-server-header" onclick="toggleMCPServerExpand('${agentId}', '${mcpServer.id}', event)">
-                    <div class="mcp-server-main-info">
-                        <div class="mcp-server-status ${this.getMCPServerStatusClass(mcpServer)}"></div>
-                        <div class="mcp-server-info">
-                            <div class="mcp-server-name">${mcpServer.name}</div>
-                        </div>
-                        <svg class="mcp-server-expand-arrow" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M7 10l5 5 5-5z"/>
-                        </svg>
+            <div class="tool-item ${tool.enabled ? '' : 'disabled'}" data-tooltip="${description.replace(/"/g, '&quot;')}">
+                <div class="tool-info">
+                    <span class="tool-name">${tool.name}</span>
+                </div>
+                <div class="tool-toggle" onclick="event.stopPropagation(); toggleTool('${agentId}', '${tool.id}')">
+                    <div class="toggle-switch ${tool.enabled ? 'on' : 'off'}">
+                        <div class="toggle-knob"></div>
                     </div>
                 </div>
-                <div class="mcp-server-tools">
-                    ${!mcpServer.tools || mcpServer.tools.length === 0 ? 
-                        '<div class="empty-state">사용 가능한 도구가 없습니다</div>' :
-                        `<div class="tools-grid">
-                            ${mcpServer.tools.map(tool => `
-                                <div class="tool-tag" onclick="testTool('${tool.name}', '${mcpServer.id}')">
-                                    ${tool.name}
-                                </div>
-                            `).join('')}
-                        </div>`
-                    }
+                <div class="tool-tooltip">
+                    <span class="tooltip-text">${description}</span>
                 </div>
             </div>
         `;
     }
 
     getAgentStatusClass(agent) {
+        // Getting status class for agent
+
         if (!agent.enabled) {
             return 'off';
         }
-        
+
         switch (agent.status) {
             case 'connecting':
                 return 'connecting orange';
@@ -391,54 +389,64 @@ class ProxyStatusManager {
     // Agent 확장/축소
     toggleAgentExpand(agentId) {
         if (!this.servers.has(agentId)) return;
-        
+
         const agent = this.servers.get(agentId);
         agent.expanded = !agent.expanded;
-        
+
         // UI 업데이트 (패널 크기 자동 조절 포함)
         this.renderServerList();
-        
+
         // 상태 저장
         this.saveServerStates();
     }
 
-    // MCP 서버 확장/축소
-    toggleMCPServerExpand(agentId, mcpServerId) {
+    // Tool 활성화/비활성화
+    toggleTool(agentId, toolId) {
         if (!this.servers.has(agentId)) return;
-        
+
         const agent = this.servers.get(agentId);
-        if (!agent.mcpServers) return;
-        
-        const mcpServer = agent.mcpServers.find(server => server.id === mcpServerId);
-        if (!mcpServer) return;
-        
-        mcpServer.expanded = !mcpServer.expanded;
-        
-        // UI 업데이트 (패널 크기 자동 조절 포함)
+        if (!agent.tools) return;
+
+        const tool = agent.tools.find(t => t.id === toolId);
+        if (!tool) return;
+
+        tool.enabled = !tool.enabled;
+
+        // UI 업데이트
         this.renderServerList();
-        
+
         // 상태 저장
         this.saveServerStates();
     }
 
     // Agent 활성화/비활성화
     toggleAgent(agentId) {
-        if (!this.servers.has(agentId)) return;
-        
-        const agent = this.servers.get(agentId);
-        
-        if (agent.type === 'demo-agent') {
-            // 데모 모드에서는 토글만 시뮬레이션
-            agent.enabled = !agent.enabled;
-            agent.status = agent.enabled ? 'connected' : 'disconnected';
-            
-        } else {
-            // 실제 Agent 토글 로직 (추후 구현)
+        // Toggling agent
+
+        if (!this.servers.has(agentId)) {
+            // Agent not found in servers
+            return;
         }
-        
+
+        const agent = this.servers.get(agentId);
+        // Agent before toggle
+
+        // 실제 Agent 토글 로직 구현
+        agent.enabled = !agent.enabled;
+
+        if (agent.enabled) {
+            // Agent를 활성화할 때는 원래 상태를 복원
+            agent.status = 'connected';
+        } else {
+            // Agent를 비활성화할 때는 off 상태로 설정
+            agent.status = 'disconnected';
+        }
+
+        // Agent after toggle
+
         // UI 업데이트 (패널 크기 자동 조절 포함)
         this.renderServerList();
-        
+
         // 상태 저장
         this.saveServerStates();
     }
@@ -506,10 +514,20 @@ class ProxyStatusManager {
         for (const [agentId, agent] of this.servers.entries()) {
             agentStates[agentId] = {
                 enabled: agent.enabled,
-                expanded: agent.expanded
+                expanded: agent.expanded,
+                tools: agent.tools ? agent.tools.map(t => ({ id: t.id, enabled: t.enabled })) : []
             };
         }
+        // Saving agent states
         localStorage.setItem('agent-states', JSON.stringify(agentStates));
+    }
+
+    // 디버깅용: 저장된 상태 초기화
+    clearServerStates() {
+        localStorage.removeItem('agent-states');
+        // Cleared all saved agent states
+        // 새로고침
+        this.refreshStatus();
     }
     
     // Agent 상태 복원
@@ -518,20 +536,43 @@ class ProxyStatusManager {
             const saved = localStorage.getItem('agent-states');
             if (saved) {
                 const agentStates = JSON.parse(saved);
+                // Loading saved agent states
+
                 for (const [agentId, agent] of this.servers.entries()) {
                     if (agentStates[agentId]) {
                         const savedState = agentStates[agentId];
+                        // enabled 상태는 저장된 값을 사용하되, 상태에 따라 status도 업데이트
                         if (savedState.enabled !== undefined) {
                             agent.enabled = savedState.enabled;
+                            // enabled 상태에 따라 status도 적절히 설정
+                            if (!agent.enabled) {
+                                agent.status = 'disconnected';
+                            } else if (agent.status === 'disconnected') {
+                                agent.status = 'connected'; // healthy agent가 비활성화 상태였다면 다시 활성화
+                            }
                         }
                         if (savedState.expanded !== undefined) {
                             agent.expanded = savedState.expanded;
                         }
+
+                        // Tool 상태 복원
+                        if (savedState.tools && agent.tools) {
+                            savedState.tools.forEach(savedTool => {
+                                const tool = agent.tools.find(t => t.id === savedTool.id);
+                                if (tool) {
+                                    tool.enabled = savedTool.enabled;
+                                }
+                            });
+                        }
+
+                        // Restored state for agent
                     }
                 }
+            } else {
+                // No saved agent states found
             }
         } catch (error) {
-            console.warn('Agent 상태 복원 실패:', error);
+            // Agent state restoration failed
         }
     }
 
@@ -608,13 +649,10 @@ function toggleAgent(agentId) {
     }
 }
 
-// MCP 서버 확장/축소
-function toggleMCPServerExpand(agentId, mcpServerId, event) {
-    if (event) {
-        event.stopPropagation();
-    }
+// Tool 활성화/비활성화
+function toggleTool(agentId, toolId) {
     if (window.proxyStatusManager) {
-        window.proxyStatusManager.toggleMCPServerExpand(agentId, mcpServerId);
+        window.proxyStatusManager.toggleTool(agentId, toolId);
     }
 }
 
@@ -641,6 +679,13 @@ async function testTool(toolName, serverId) {
         if (window.portfolioApp) {
             window.portfolioApp.showTemporaryMessage(message, 'ai-message');
         }
+    }
+}
+
+// 디버깅용 전역 함수
+function clearAgentStates() {
+    if (window.proxyStatusManager) {
+        window.proxyStatusManager.clearServerStates();
     }
 }
 
