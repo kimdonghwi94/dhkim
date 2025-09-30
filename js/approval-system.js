@@ -61,10 +61,8 @@ class ApprovalSystem {
 
     // 액션 승인 요청
     async requestApproval(actionType, actionParams, aiResponse, context = {}) {
-        console.log('requestApproval 호출됨:', { actionType, actionParams, aiResponse, context });
         return new Promise((resolve, reject) => {
             const actionId = 'action_' + Date.now();
-            console.log('생성된 액션 ID:', actionId);
 
             // 대기 중인 액션 저장
             this.pendingActions.set(actionId, {
@@ -76,60 +74,48 @@ class ApprovalSystem {
                 reject,
                 timestamp: Date.now()
             });
-            console.log('대기 중인 액션 저장됨. 현재 대기 액션 수:', this.pendingActions.size);
 
             // 승인 모달 표시
-            console.log('승인 모달 표시 시작...');
             this.showApprovalModal(actionId, actionType, actionParams, aiResponse);
         });
     }
 
     showApprovalModal(actionId, actionType, actionParams, aiResponse) {
-        console.log('showApprovalModal 호출됨:', { actionId, actionType, actionParams });
         // AI 메시지 바로 밑에 승인 UI 추가
         this.showInlineApproval(actionId, actionType, actionParams, aiResponse);
     }
     
     showInlineApproval(actionId, actionType, actionParams, aiResponse) {
-        console.log('showInlineApproval 호출됨');
 
         // 기존 승인 UI 모두 제거
         const existingApprovals = document.querySelectorAll('.inline-approval');
         existingApprovals.forEach(el => el.remove());
-        console.log('기존 승인 UI 제거됨:', existingApprovals.length, '개');
 
         // AI 메시지 찾기 - 다양한 선택자로 시도
         let aiMessages = document.querySelectorAll('.chat-message.ai');
-        console.log('AI 메시지 개수 (.chat-message.ai):', aiMessages.length);
 
         // 만약 못 찾으면 다른 선택자들도 시도
         if (aiMessages.length === 0) {
             aiMessages = document.querySelectorAll('.message.ai');
-            console.log('AI 메시지 개수 (.message.ai):', aiMessages.length);
         }
 
         if (aiMessages.length === 0) {
             aiMessages = document.querySelectorAll('.ai-message');
-            console.log('AI 메시지 개수 (.ai-message):', aiMessages.length);
         }
 
         if (aiMessages.length === 0) {
             aiMessages = document.querySelectorAll('[class*="ai"]');
-            console.log('AI 메시지 개수 ([class*="ai"]):', aiMessages.length);
         }
 
         const aiMessage = aiMessages[aiMessages.length - 1];
-        console.log('마지막 AI 메시지:', aiMessage);
 
         if (!aiMessage) {
-            console.warn('AI 메시지를 찾을 수 없어 폴백 모드 사용');
             this.showCompactApproval(actionId, actionType, actionParams, aiResponse);
             return;
         }
 
         // 액션 정보 설정
         const actionInfo = this.getActionInfo(actionType, actionParams);
-        console.log('액션 정보:', actionInfo);
 
         // 인라인 승인 UI 생성
         const approvalDiv = document.createElement('div');
@@ -179,12 +165,9 @@ class ApprovalSystem {
             </div>
         `;
 
-        console.log('승인 UI 생성됨:', approvalDiv);
-        console.log('AI 메시지 부모:', aiMessage.parentNode);
 
         // 완전히 새로운 접근법: fixed position으로 화면에 강제 표시
         document.body.appendChild(approvalDiv);
-        console.log('승인 UI를 body에 직접 삽입');
 
         // fixed position으로 화면 중앙 상단에 표시
         approvalDiv.style.position = 'fixed';
@@ -198,16 +181,9 @@ class ApprovalSystem {
 
         // 즉시 활성화 (애니메이션 제거)
         approvalDiv.classList.add('active');
-        console.log('승인 UI 활성화됨');
 
         // 추가 확인을 위한 디버깅
         const rect = approvalDiv.getBoundingClientRect();
-        console.log('승인 UI 최종 위치:', rect);
-        console.log('승인 UI 표시 상태:', window.getComputedStyle(approvalDiv).display);
-        console.log('승인 UI 투명도:', window.getComputedStyle(approvalDiv).opacity);
-        console.log('승인 UI 화면상 가시성:', rect.top, rect.left, rect.width, rect.height);
-        console.log('승인 UI DOM 부모들:', approvalDiv.parentNode?.className, approvalDiv.parentNode?.parentNode?.className);
-
         // 승인 UI로 스크롤 이동
         approvalDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -238,14 +214,11 @@ class ApprovalSystem {
     
     // 폴백용 기존 컴팩트 승인 UI
     showCompactApproval(actionId, actionType, actionParams, aiResponse) {
-        console.log('showCompactApproval 폴백 모드 시작:', { actionId, actionType, actionParams });
 
         let compactApproval = document.getElementById('compact-approval');
-        console.log('compact-approval 엘리먼트:', compactApproval);
 
         // compact-approval이 없으면 강제로 생성
         if (!compactApproval) {
-            console.log('compact-approval이 없어서 강제 생성');
             const approvalHTML = `
                 <div id="compact-approval" class="compact-approval" style="display: none; position: fixed; top: 20px; right: 20px; background: white; border: 2px solid #007bff; border-radius: 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000;">
                     <div class="compact-approval-message" id="compact-approval-message"></div>
@@ -260,11 +233,9 @@ class ApprovalSystem {
         }
 
         const messageEl = document.getElementById('compact-approval-message');
-        console.log('message 엘리먼트:', messageEl);
 
         // 액션 정보 설정
         const actionInfo = this.getActionInfo(actionType, actionParams);
-        console.log('액션 정보:', actionInfo);
 
         if (messageEl) {
             messageEl.innerHTML = `
@@ -275,22 +246,18 @@ class ApprovalSystem {
 
         // 현재 액션 ID 저장
         compactApproval.dataset.actionId = actionId;
-        console.log('actionId 저장됨:', actionId);
 
         // 컴팩트 UI 표시
         compactApproval.style.display = 'flex';
-        console.log('compact-approval 표시됨');
 
         // 애니메이션
         setTimeout(() => {
             compactApproval.classList.add('active');
-            console.log('compact-approval 활성화됨');
         }, 10);
 
         // 자동 타임아웃 (30초)
         setTimeout(() => {
             if (this.pendingActions.has(actionId)) {
-                console.log('30초 타임아웃으로 액션 취소');
                 this.cancelAction();
             }
         }, 30000);
@@ -414,8 +381,6 @@ class ApprovalSystem {
                 });
             }
 
-            console.log('액션 취소됨:', action);
-            
             // Promise reject
             action.reject(new Error('사용자가 액션을 취소했습니다.'));
             

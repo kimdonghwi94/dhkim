@@ -49,7 +49,6 @@ class NavigationSystem {
             } else if (this.pages[pageName].isMarkdown) {
                 // 마크다운 페이지는 마크다운 로더 사용 (관리자 버튼 포함)
                 if (window.markdownLoader) {
-                    console.log(`네비게이션: ${pageName} 페이지 로드 중...`);
                     pageBody.innerHTML = await window.markdownLoader.getPageContent(pageName);
                 } else {
                     pageBody.innerHTML = `<h1>로딩 중...</h1><p>마크다운 로더를 불러오는 중입니다.</p>`;
@@ -136,12 +135,10 @@ class NavigationSystem {
 
                 // 메인 페이지 채팅 기능 재초기화
                 if (window.portfolioApp) {
-                    console.log('메인 페이지 채팅 기능 재초기화 시작');
 
                     // 먼저 세션 기록을 복원
                     if (window.sessionManager) {
                         const allMessages = window.sessionManager.getChatHistory();
-                        console.log('복원할 메시지 수:', allMessages.length);
                         if (allMessages.length > 0) {
                             window.portfolioApp.restoreChatHistory(allMessages);
                         }
@@ -152,15 +149,11 @@ class NavigationSystem {
 
                     // 승인 시스템 재초기화
                     if (!window.approvalSystem) {
-                        console.log('승인 시스템 재생성');
                         window.approvalSystem = new ApprovalSystem();
                     } else {
-                        console.log('승인 시스템이 이미 존재함');
                     }
 
-                    console.log('메인 페이지 채팅 기능 재초기화 완료');
                 } else {
-                    console.error('portfolioApp이 존재하지 않습니다');
                 }
             }, 50);
         }, 300);

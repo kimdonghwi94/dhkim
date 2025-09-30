@@ -87,7 +87,6 @@ class ProxyAPI {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log(data)
                 this.agents = data.agents || [];
                 
                 // 상태 매니저 업데이트

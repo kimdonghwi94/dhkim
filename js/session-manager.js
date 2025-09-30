@@ -12,7 +12,6 @@ class SessionManager {
                              performance.getEntriesByType('navigation')[0]?.type === 'reload';
 
         if (isPageRefresh) {
-            console.log('새로고침 감지됨 - 세션 초기화');
             // 새로고침 시에는 세션 완전 초기화
             this.cleanupOldData(); // 먼저 기존 데이터 삭제
             this.sessionId = this.generateSessionId();
@@ -20,7 +19,6 @@ class SessionManager {
             this.currentContext = { page: 'home' };
             // 새로고침 시에는 저장하지 않음 (메모리에만 유지)
         } else {
-            console.log('일반 페이지 로드 - 세션 복원 시도');
             // 페이지 전환 시에는 기존 세션 복원
             const sessionLoaded = this.loadSession();
 
@@ -33,7 +31,6 @@ class SessionManager {
             }
         }
 
-        console.log('세션 초기화됨:', this.sessionId, '대화기록 수:', this.chatHistory.length);
     }
 
     // 기존 localStorage 데이터 정리
@@ -54,10 +51,8 @@ class SessionManager {
 
             keysToRemove.forEach(key => {
                 localStorage.removeItem(key);
-                console.log('localStorage 삭제됨:', key);
             });
 
-            console.log('localStorage 정리 완료. 삭제된 항목 수:', keysToRemove.length);
         } catch (error) {
             console.error('localStorage 정리 실패:', error);
         }

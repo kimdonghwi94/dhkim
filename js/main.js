@@ -52,11 +52,9 @@ class PortfolioApp {
         if (!isPageRefresh && window.sessionManager) {
             const existingMessages = window.sessionManager.getChatHistory();
             if (existingMessages.length > 0) {
-                console.log('기존 채팅 기록 복원 중:', existingMessages.length, '개 메시지');
                 this.restoreChatHistory(existingMessages);
             }
         } else if (isPageRefresh) {
-            console.log('새로고침 감지됨 - 채팅 기록 복원 안함');
             // 새로고침 시에는 채팅창 클리어
             this.clearAllChatMessages();
 
@@ -87,18 +85,13 @@ class PortfolioApp {
         // 내부 메시지 배열도 클리어
         this.chatMessages = [];
 
-        console.log('모든 채팅 메시지 클리어됨');
     }
 
     setupEventListeners() {
-        console.log('setupEventListeners 호출됨');
 
         // 기존 이벤트 리스너 제거 후 재설정
         const chatInput = document.getElementById('chat-input');
         const userInput = document.getElementById('user-input');
-
-        console.log('chatInput 존재:', !!chatInput);
-        console.log('userInput 존재:', !!userInput);
 
         if (chatInput) {
             // 기존 이벤트 리스너 제거
@@ -106,13 +99,11 @@ class PortfolioApp {
 
             // 새 이벤트 리스너 추가
             this.chatInputHandler = (e) => {
-                console.log('chatInput keypress 이벤트 발생:', e.key);
                 if (e.key === 'Enter') {
                     this.sendChatMessage();
                 }
             };
             chatInput.addEventListener('keypress', this.chatInputHandler);
-            console.log('chatInput 이벤트 리스너 설정 완료');
         }
 
         if (userInput) {
@@ -121,13 +112,11 @@ class PortfolioApp {
 
             // 새 이벤트 리스너 추가
             this.userInputHandler = (e) => {
-                console.log('userInput keypress 이벤트 발생:', e.key);
                 if (e.key === 'Enter') {
                     this.handleUserInput();
                 }
             };
             userInput.addEventListener('keypress', this.userInputHandler);
-            console.log('userInput 이벤트 리스너 설정 완료');
         }
     }
 
@@ -142,15 +131,10 @@ class PortfolioApp {
     }
 
     async handleUserInput() {
-        console.log('handleUserInput 호출됨!');
         const input = document.getElementById('user-input');
-        console.log('input 요소:', input);
         const userMessage = input.value.trim();
-        console.log('사용자 메시지:', userMessage);
-        console.log('처리 중 상태:', this.isProcessing);
 
         if (!userMessage || this.isProcessing) {
-            console.log('처리 중이거나 메시지가 없음');
             return;
         }
 
@@ -239,15 +223,12 @@ class PortfolioApp {
     }
 
     async handleAIResult(result, originalQuery) {
-        console.log('handleAIResult 호출됨:', result);
         // AI 응답은 이미 processUserQueryWithAI에서 스트리밍으로 처리됨
         // 여기서는 세션 기록과 액션 처리만 수행
         if (result.text) {
-            console.log('AI 응답 텍스트 처리 중:', result.text.substring(0, 100) + '...');
 
             // 최종 메시지에 시간 추가
             const messageElements = document.querySelectorAll('.chat-message.ai');
-            console.log('AI 메시지 요소 개수:', messageElements.length);
             if (messageElements.length > 0) {
                 const lastMessage = messageElements[messageElements.length - 1];
                 if (lastMessage && lastMessage.id) {
@@ -267,11 +248,8 @@ class PortfolioApp {
 
         // 액션 처리
         if (result.actions && result.actions.length > 0) {
-            console.log('액션 처리 시작. 액션 개수:', result.actions.length);
-            console.log('액션 목록:', result.actions);
             try {
                 for (const action of result.actions) {
-                    console.log('액션 처리 중:', action);
                     await this.handleActionWithApproval(action, result.text, originalQuery);
                 }
             } catch (actionError) {
@@ -279,18 +257,13 @@ class PortfolioApp {
                 // 액션 처리 중 에러가 발생해도 전체 프로세스는 계속 진행
             }
         } else {
-            console.log('처리할 액션이 없습니다. result.actions:', result.actions);
         }
     }
 
     async handleActionWithApproval(action, aiResponse, originalQuery) {
-        console.log('handleActionWithApproval 호출됨:', action);
-        console.log('approvalSystem 존재 여부:', !!window.approvalSystem);
-        console.log('approvalSystem 상태:', window.approvalSystem);
 
         try {
             if (action.requires_approval !== false) {
-                console.log('승인이 필요한 액션입니다. 승인 요청 중...');
 
                 // 승인 시스템이 없으면 강제로 재생성
                 if (!window.approvalSystem) {
@@ -305,14 +278,11 @@ class PortfolioApp {
                     aiResponse,
                     { originalQuery, timestamp: Date.now() }
                 );
-                console.log('승인 결과:', approval);
 
                 if (approval.approved) {
-                    console.log('액션이 승인되었습니다. 실행 중...');
                     await this.executeAction(action);
                 }
             } else {
-                console.log('승인 없이 즉시 실행');
                 // 승인 없이 즉시 실행
                 await this.executeAction(action);
             }
@@ -638,10 +608,7 @@ class PortfolioApp {
 
     // 채팅 기능 재초기화 (메인 페이지로 돌아올 때)
     reinitializeChat() {
-        console.log('=== 채팅 기능 재초기화 시작 ===');
-
         const userInput = document.getElementById('user-input');
-        console.log('user-input 요소 존재:', !!userInput);
 
         // 이벤트 리스너 재설정
         this.setupEventListeners();
@@ -653,7 +620,6 @@ class PortfolioApp {
         // 로딩 상태 해제 (입력 필드 활성화)
         this.setLoadingState(false);
 
-        console.log('=== 채팅 기능 재초기화 완료 ===');
     }
 
     addFloatingChatMessage(sender, message, autoScroll = true) {
