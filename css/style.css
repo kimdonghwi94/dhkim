@@ -732,6 +732,7 @@ body.dark-mode .theme-toggle .moon-icon {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: calc(100vh - 120px);
     overflow-y: auto;
+    overflow-x: visible;
     z-index: 1000;
 }
 
@@ -1080,7 +1081,7 @@ body.dark-mode .theme-toggle .moon-icon {
     padding-left: 16px; /* Additional padding for center alignment */
     opacity: 0;
     max-height: 0;
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.3s ease;
     border-left: 2px solid rgba(102, 126, 234, 0.2);
 }
@@ -3417,6 +3418,7 @@ body.dark-mode .server-item.server-disabled .server-url {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow: visible;
 }
 
 /* Agent 계층 구조 스타일 */
