@@ -1084,7 +1084,7 @@ body.dark-mode .theme-toggle .moon-icon {
     padding-left: 16px; /* Additional padding for center alignment */
     opacity: 0;
     max-height: 0;
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.3s ease;
     border-left: 2px solid rgba(102, 126, 234, 0.2);
 }
@@ -2750,7 +2750,10 @@ body.dark-mode .post-body a:hover {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
     background: transparent;
+    min-height: 0;
+    word-break: break-word;
 }
 
 .chat-input {

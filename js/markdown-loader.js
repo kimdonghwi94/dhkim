@@ -132,7 +132,7 @@ class MarkdownLoader {
                 `./content/${filename}.md`,
                 `/content/${filename}.md`
             ];
-            
+
             for (const path of paths) {
                 try {
                     response = await fetch(path);
@@ -141,18 +141,18 @@ class MarkdownLoader {
                     continue;
                 }
             }
-            
+
             if (!response || !response.ok) {
                 // 모든 경로 실패 시 기본 내용 반환
                 return this.getDefaultContent(filename);
             }
-            
+
             const markdownContent = await response.text();
             const htmlContent = this.parseMarkdown(markdownContent);
-            
+
             // 캐시에 저장
             this.cache.set(filename, htmlContent);
-            
+
             return htmlContent;
         } catch (error) {
             return this.getDefaultContent(filename);
@@ -186,9 +186,8 @@ class MarkdownLoader {
 
 ## 연락처
 
-* **이메일**: your.email@example.com
-* **GitHub**: https://github.com/yourusername
-* **LinkedIn**: https://linkedin.com/in/yourusername
+* **이메일**: kimdonghwi94@gmail.com
+* **GitHub**: https://github.com/kimdonghwi94
 
 ---
 
@@ -201,8 +200,8 @@ class MarkdownLoader {
 ## 👤 기본 정보
 
 * **이름**: 김동휘
-* **이메일**: your.email@example.com
-* **깃허브**: https://github.com/yourusername
+* **이메일**: kimdonghwi94@gmail.com
+* **깃허브**: https://github.com/kimdonghwi94
 
 ## 💼 경력
 

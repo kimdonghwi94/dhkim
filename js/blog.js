@@ -281,12 +281,28 @@ class BlogManager {
         }
     }
 
-    deletePost(postId) {
+    async deletePost(postId) {
+        // 게시글 비밀번호 확인
+        const password = await this.requestPostPassword();
+
+        if (!password) {
+            return; // 사용자가 취소한 경우
+        }
+
+        // 비밀번호 검증
+        const isValid = await this.verifyPostPassword(postId, password);
+
+        if (!isValid) {
+            alert('잘못된 비밀번호입니다.');
+            return;
+        }
+
+        // 비밀번호가 유효한 경우에만 삭제 진행
         if (confirm('정말로 이 글을 삭제하시겠습니까?')) {
             const posts = this.getStoredPosts();
             const updatedPosts = posts.filter(post => post.id !== postId);
             localStorage.setItem('blog-posts', JSON.stringify(updatedPosts));
-            
+
             // 페이지 새로고침
             navigateToPage('blog');
             alert('글이 삭제되었습니다.');

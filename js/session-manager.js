@@ -7,24 +7,54 @@ class SessionManager {
     }
 
     init() {
-        // 기존 localStorage 데이터 정리
-        this.cleanupOldData();
-        
-        // 매번 새로운 세션 시작 (localStorage 사용 안함)
-        this.sessionId = this.generateSessionId();
-        this.chatHistory = [];
-        this.currentContext = { page: 'home' };
-        
-        // New session started
+        // 새로고침 감지 (performance.navigation API 사용)
+        const isPageRefresh = performance.navigation.type === performance.navigation.TYPE_RELOAD ||
+                             performance.getEntriesByType('navigation')[0]?.type === 'reload';
+
+        if (isPageRefresh) {
+            // 새로고침 시에는 세션 완전 초기화
+            this.cleanupOldData(); // 먼저 기존 데이터 삭제
+            this.sessionId = this.generateSessionId();
+            this.chatHistory = [];
+            this.currentContext = { page: 'home' };
+            // 새로고침 시에는 저장하지 않음 (메모리에만 유지)
+        } else {
+            // 페이지 전환 시에는 기존 세션 복원
+            const sessionLoaded = this.loadSession();
+
+            if (!sessionLoaded || this.isSessionExpired()) {
+                // 세션이 없거나 만료된 경우만 새로 시작
+                this.sessionId = this.generateSessionId();
+                this.chatHistory = [];
+                this.currentContext = { page: 'home' };
+                this.saveSession();
+            }
+        }
+
     }
 
     // 기존 localStorage 데이터 정리
     cleanupOldData() {
         try {
+            // 모든 포트폴리오 관련 localStorage 데이터 삭제
             localStorage.removeItem('portfolio_session');
             localStorage.removeItem('portfolio_session_id');
+
+            // 혹시 다른 키로 저장된 데이터도 확인해서 삭제
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('portfolio') || key.includes('session') || key.includes('chat'))) {
+                    keysToRemove.push(key);
+                }
+            }
+
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+            });
+
         } catch (error) {
-            // localStorage cleanup failed
+            console.error('localStorage 정리 실패:', error);
         }
     }
 
@@ -95,16 +125,53 @@ class SessionManager {
         );
     }
 
-    // 세션 저장 (메모리에서만 관리, localStorage 사용 안함)
+    // 세션 저장 (localStorage 사용)
     saveSession() {
-        // 페이지 새로고침시 초기화되도록 localStorage 저장하지 않음
-        // Session memory saved
+        try {
+            const sessionData = {
+                sessionId: this.sessionId,
+                chatHistory: this.chatHistory,
+                currentContext: this.currentContext,
+                lastUpdated: Date.now()
+            };
+            localStorage.setItem('portfolio_session', JSON.stringify(sessionData));
+        } catch (error) {
+            console.error('세션 저장 실패:', error);
+        }
     }
 
-    // 세션 로드 (사용하지 않음 - 매번 새로 시작)
+    // 세션 로드 (localStorage에서)
     loadSession() {
-        // 매번 새로운 세션을 시작하므로 로드하지 않음
+        try {
+            const sessionData = localStorage.getItem('portfolio_session');
+            if (sessionData) {
+                const parsed = JSON.parse(sessionData);
+                this.sessionId = parsed.sessionId || this.generateSessionId();
+                this.chatHistory = parsed.chatHistory || [];
+                this.currentContext = parsed.currentContext || { page: 'home' };
+                return true;
+            }
+        } catch (error) {
+            console.error('세션 로드 실패:', error);
+        }
         return false;
+    }
+
+    // 세션이 만료되었는지 확인 (24시간 이상 지난 경우)
+    isSessionExpired() {
+        try {
+            const sessionData = localStorage.getItem('portfolio_session');
+            if (sessionData) {
+                const parsed = JSON.parse(sessionData);
+                const lastUpdated = parsed.lastUpdated || 0;
+                const now = Date.now();
+                const dayInMs = 24 * 60 * 60 * 1000;
+                return (now - lastUpdated) > dayInMs;
+            }
+        } catch (error) {
+            return true;
+        }
+        return true;
     }
 
     // 새 세션 시작
