@@ -489,7 +489,7 @@ class PortfolioApp {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
 
-        if (!message) return;
+        if (!message || this.isProcessing) return;
 
         // 플로팅 채팅 메시지 컨테이너 확인
         let messagesContainer = document.getElementById('chat-messages');
@@ -497,11 +497,11 @@ class PortfolioApp {
             messagesContainer = document.querySelector('#chat-container .chat-messages');
         }
 
-        // 서버 연결 상태 확인 (일단 스킵하고 로컬 명령어 처리)
-        // if (!window.proxyAPI || !window.proxyAPI.isConnected) {
-        //     this.addFloatingChatMessage('ai', '서버에 연결되지 않아 응답을 생성할 수 없습니다.');
-        //     return;
-        // }
+        // 처리 중 상태로 설정
+        this.isProcessing = true;
+
+        // 입력창 비활성화 및 로딩 표시
+        this.setFloatingChatLoadingState(true);
 
         // 채팅 메시지 추가 - 플로팅 채팅용 함수 사용
         this.addFloatingChatMessage('user', message);
@@ -518,25 +518,46 @@ class PortfolioApp {
 
         input.value = '';
 
+        // 타이핑 인디케이터 표시
+        this.showFloatingTypingIndicator();
+
         try {
             // 비동기 작업 처리
             let result;
-            
+
             if (!window.proxyAPI || !window.proxyAPI.isConnected) {
                 // 서버 연결 실패시
                 throw new Error('서버에 연결되지 않았습니다');
             }
-            
-            // Proxy API를 통한 실제 처리
+
+            // AI 응답 메시지 미리 추가 (빈 메시지)
+            const aiMessageElement = this.addFloatingChatMessage('ai', '', false);
+
+            // Proxy API를 통한 실제 처리 (스트리밍)
             result = await window.proxyAPI.processQuery(message, {
                 currentPage: window.navigation?.currentPage || 'unknown',
-                chatContext: true
+                chatContext: true,
+                onStream: (content, fullContent) => {
+                    // 스트리밍 중 메시지 업데이트
+                    if (aiMessageElement) {
+                        const contentElement = aiMessageElement.querySelector('.chat-message-content');
+                        if (contentElement) {
+                            contentElement.innerHTML = this.renderMarkdown(fullContent);
+                        }
+                    }
+                }
             });
 
-            // AI 응답 표시 - 플로팅 채팅용 함수 사용
-            if (result.text) {
-                this.addFloatingChatMessage('ai', result.text);
-                
+            // 타이핑 인디케이터 제거
+            this.hideFloatingTypingIndicator();
+
+            // AI 응답 표시 - 최종 메시지 업데이트
+            if (result.text && aiMessageElement) {
+                const contentElement = aiMessageElement.querySelector('.chat-message-content');
+                if (contentElement) {
+                    contentElement.innerHTML = this.renderMarkdown(result.text);
+                }
+
                 // 세션에 AI 응답 기록
                 if (window.sessionManager) {
                     window.sessionManager.addMessage('ai', result.text, {
@@ -557,7 +578,12 @@ class PortfolioApp {
             }
 
         } catch (error) {
+            this.hideFloatingTypingIndicator();
             this.handleChatConnectionError(error);
+        } finally {
+            // 처리 완료 후 입력창 활성화
+            this.isProcessing = false;
+            this.setFloatingChatLoadingState(false);
         }
     }
 
@@ -639,15 +665,15 @@ class PortfolioApp {
             messagesContainer = document.querySelector('#chat-container .chat-messages');
         }
 
-        if (!messagesContainer) return;
+        if (!messagesContainer) return null;
 
         const messageDiv = document.createElement('div');
         // 메인 채팅창과 동일한 클래스 구조 사용
         messageDiv.className = `chat-message ${sender}`;
 
         const messageStyle = sender === 'user'
-            ? 'background: #667eea; color: white; margin-left: 20px; border-radius: 15px 15px 5px 15px;'
-            : 'background: #f1f3f4; color: #333; margin-right: 20px; border-radius: 15px 15px 15px 5px;';
+            ? 'background: #667eea; color: white; margin-left: 20px; border-radius: 15px 15px 5px 15px; word-wrap: break-word; overflow-wrap: break-word; max-width: 85%;'
+            : 'background: #f1f3f4; color: #333; margin-right: 20px; border-radius: 15px 15px 15px 5px; word-wrap: break-word; overflow-wrap: break-word; max-width: 85%;';
 
         // AI 메시지인 경우 마크다운으로 렌더링, 사용자 메시지는 일반 텍스트
         const renderedMessage = sender === 'ai' ? this.renderMarkdown(message) : message;
@@ -662,6 +688,64 @@ class PortfolioApp {
 
         if (autoScroll) {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        return messageDiv;
+    }
+
+    // 플로팅 채팅 로딩 상태 설정
+    setFloatingChatLoadingState(isLoading) {
+        const input = document.getElementById('chat-input');
+        const button = input?.nextElementSibling || input?.parentElement?.querySelector('button');
+
+        if (!input) return;
+
+        if (isLoading) {
+            input.disabled = true;
+            input.placeholder = 'AI가 응답을 생성하고 있습니다...';
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<div class="loading-spinner"></div>';
+            }
+        } else {
+            input.disabled = false;
+            input.placeholder = '궁금한 것을 물어보세요...';
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '전송';
+            }
+        }
+    }
+
+    // 플로팅 채팅 타이핑 인디케이터 표시
+    showFloatingTypingIndicator() {
+        let messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) {
+            messagesContainer = document.querySelector('#chat-container .chat-messages');
+        }
+        if (!messagesContainer) return;
+
+        // 기존 인디케이터 제거
+        this.hideFloatingTypingIndicator();
+
+        const indicator = document.createElement('div');
+        indicator.className = 'typing-indicator';
+        indicator.id = 'floating-typing-indicator';
+        indicator.innerHTML = `
+            <span></span>
+            <span></span>
+            <span></span>
+        `;
+
+        messagesContainer.appendChild(indicator);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // 플로팅 채팅 타이핑 인디케이터 제거
+    hideFloatingTypingIndicator() {
+        const indicator = document.getElementById('floating-typing-indicator');
+        if (indicator && indicator.parentNode) {
+            indicator.remove();
         }
     }
 
