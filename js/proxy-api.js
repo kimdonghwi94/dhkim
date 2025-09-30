@@ -1,7 +1,7 @@
 class ProxyAPI {
     constructor() {
         // Proxy 서버 기본 엔드포인트 설정
-        this.baseEndpoint = 'https://agent-gateway.vercel.app/api';
+        this.baseEndpoint = 'https://agent-gateway-1092310008847.asia-northeast3.run.app/api';
         this.isConnected = false;
         this.agents = [];
         this.currentSessionId = null;
