@@ -309,6 +309,109 @@ class ProxyAPI {
 
     // 통합 쿼리 처리
     async processQuery(userQuery, context = {}) {
+        // 먼저 4가지 특정 명령어인지 검사
+        const lowerQuery = userQuery.toLowerCase().trim();
+
+        // 4가지 특정 명령어 처리
+        if (lowerQuery === '포트폴리오를 보여줘' || lowerQuery === '포트폴리오 보여줘') {
+            const response = '포트폴리오 페이지로 이동합니다. 프로젝트와 작업 경험을 확인하실 수 있습니다.';
+
+            // 타이핑 효과 시뮬레이션
+            if (context.onStream) {
+                const words = response.split(' ');
+                let currentText = '';
+
+                for (const word of words) {
+                    currentText += word + ' ';
+                    context.onStream(word + ' ', currentText.trim());
+                    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
+                }
+            }
+
+            return {
+                text: response,
+                actions: [{
+                    type: 'navigate',
+                    params: { page: 'portfolio' },
+                    requires_approval: true
+                }],
+                metadata: { source: 'local_command', timestamp: Date.now() }
+            };
+        } else if (lowerQuery === '이력서를 보여줘' || lowerQuery === '이력서 보여줘') {
+            const response = '이력서 페이지로 이동합니다. 학력, 경력, 기본 정보를 확인하실 수 있습니다.';
+
+            // 타이핑 효과 시뮬레이션
+            if (context.onStream) {
+                const words = response.split(' ');
+                let currentText = '';
+
+                for (const word of words) {
+                    currentText += word + ' ';
+                    context.onStream(word + ' ', currentText.trim());
+                    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
+                }
+            }
+
+            return {
+                text: response,
+                actions: [{
+                    type: 'navigate',
+                    params: { page: 'resume' },
+                    requires_approval: true
+                }],
+                metadata: { source: 'local_command', timestamp: Date.now() }
+            };
+        } else if (lowerQuery === '기술스택을 알려줘' || lowerQuery === '기술스택 알려줘') {
+            const response = '기술스택 페이지로 이동합니다. 보유한 기술과 역량을 확인하실 수 있습니다.';
+
+            // 타이핑 효과 시뮬레이션
+            if (context.onStream) {
+                const words = response.split(' ');
+                let currentText = '';
+
+                for (const word of words) {
+                    currentText += word + ' ';
+                    context.onStream(word + ' ', currentText.trim());
+                    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
+                }
+            }
+
+            return {
+                text: response,
+                actions: [{
+                    type: 'navigate',
+                    params: { page: 'skills' },
+                    requires_approval: true
+                }],
+                metadata: { source: 'local_command', timestamp: Date.now() }
+            };
+        } else if (lowerQuery === '블로그를 보여줘' || lowerQuery === '블로그 보여줘') {
+            const response = '블로그 페이지로 이동합니다. 작성한 글들과 새 글 작성이 가능합니다.';
+
+            // 타이핑 효과 시뮬레이션
+            if (context.onStream) {
+                const words = response.split(' ');
+                let currentText = '';
+
+                for (const word of words) {
+                    currentText += word + ' ';
+                    context.onStream(word + ' ', currentText.trim());
+                    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
+                }
+            }
+
+            return {
+                text: response,
+                actions: [{
+                    type: 'navigate',
+                    params: { page: 'blog' },
+                    requires_approval: true
+                }],
+                metadata: { source: 'local_command', timestamp: Date.now() }
+            };
+        }
+
+        // 4가지 명령어가 아닌 경우에만 proxy 서버로 전송
         let taskResponse = null;
         try {
             taskResponse = await this.sendChatMessage(userQuery, context);
@@ -383,51 +486,14 @@ class ProxyAPI {
 
     // 폴백 처리 (Proxy 서버 연결 실패시)
     async fallbackProcessing(userQuery, context = {}) {
-        
-        const lowerQuery = userQuery.toLowerCase();
-        let response = '';
-        let actions = [];
-
-        // 기본적인 키워드 기반 처리
-        if (lowerQuery.includes('포트폴리오')) {
-            response = '포트폴리오 페이지로 이동합니다. 프로젝트와 작업 경험을 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'portfolio' },
-                requires_approval: true
-            });
-        } else if (lowerQuery.includes('이력서')) {
-            response = '이력서 페이지로 이동합니다. 학력, 경력, 기본 정보를 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'resume' },
-                requires_approval: true
-            });
-        } else if (lowerQuery.includes('기술스택') || lowerQuery.includes('기술')) {
-            response = '기술스택 페이지로 이동합니다. 보유한 기술과 역량을 확인하실 수 있습니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'skills' },
-                requires_approval: true
-            });
-        } else if (lowerQuery.includes('블로그') || lowerQuery.includes('글')) {
-            response = '블로그 페이지로 이동합니다. 작성한 글들과 새 글 작성이 가능합니다.';
-            actions.push({
-                type: 'navigate',
-                params: { page: 'blog' },
-                requires_approval: true
-            });
-        } else if (lowerQuery.includes('안녕') || lowerQuery.includes('hello')) {
-            response = '안녕하세요! 김동휘의 포트폴리오에 오신 것을 환영합니다. 포트폴리오, 이력서, 기술스택, 블로그 중 어떤 것을 보고 싶으신가요?';
-        } else {
-            response = `"${userQuery}"에 대한 답변을 준비하고 있습니다. 포트폴리오 관련 질문이시라면 구체적으로 "포트폴리오", "이력서", "기술스택", "블로그" 중 하나를 언급해주세요.`;
-        }
+        // proxy 서버 연결 실패 시 안내 메시지
+        const response = 'Agent 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.\n\n사용 가능한 명령어:\n• "포트폴리오를 보여줘"\n• "이력서를 보여줘"\n• "기술스택을 알려줘"\n• "블로그를 보여줘"';
 
         // 타이핑 효과 시뮬레이션
         if (context.onStream) {
             const words = response.split(' ');
             let currentText = '';
-            
+
             for (const word of words) {
                 currentText += word + ' ';
                 context.onStream(word + ' ', currentText.trim());
@@ -437,7 +503,7 @@ class ProxyAPI {
 
         return {
             text: response,
-            actions: actions,
+            actions: [],
             metadata: { source: 'proxy_fallback', timestamp: Date.now() }
         };
     }

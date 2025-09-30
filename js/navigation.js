@@ -58,7 +58,7 @@ class NavigationSystem {
                 pageBody.innerHTML = '<h1>페이지를 찾을 수 없습니다.</h1>';
             }
             
-            document.title = `${this.pages[pageName].title} - 김동휘 포트폴리오`;
+            document.title = `${this.pages[pageName].title} - 김동휘 웹 페이지`;
             
             // 페이지 콘텐츠 표시
             pageContent.style.display = 'block';
@@ -94,7 +94,7 @@ class NavigationSystem {
 
     goHome() {
         this.currentPage = 'home';
-        
+
         const mainContainer = document.querySelector('.container');
         const pageContent = document.getElementById('page-content');
         const chatContainer = document.getElementById('chat-container');
@@ -107,24 +107,61 @@ class NavigationSystem {
             pageContent.style.display = 'none';
             chatContainer.style.display = 'none'; // 채팅창 숨기기
             chatContainer.classList.remove('active'); // 활성 클래스 제거
-            
+
             // 플로팅 버튼도 숨기기 (메인 페이지에서는 플로팅 버튼도 숨김)
             const chatFloatBtn = document.getElementById('chat-float-btn');
             chatFloatBtn.style.display = 'none';
-            
+
             // 메인 페이지 표시
             mainContainer.style.display = 'flex';
             mainContainer.style.opacity = '0';
-            
+
             // 연결된 Agent 창 다시 표시
             const proxyStatus = document.getElementById('proxy-status');
             if (proxyStatus) {
                 proxyStatus.style.display = 'flex';
             }
-            
+
             setTimeout(() => {
                 mainContainer.style.opacity = '1';
-                document.title = '김동휘 포트폴리오';
+                document.title = '김동휘 웹 페이지';
+
+                // 세션 컨텍스트 업데이트
+                if (window.sessionManager) {
+                    window.sessionManager.setCurrentContext({
+                        page: 'home',
+                        navigationTime: Date.now()
+                    });
+                }
+
+                // 메인 페이지 채팅 기능 재초기화
+                if (window.portfolioApp) {
+                    console.log('메인 페이지 채팅 기능 재초기화 시작');
+
+                    // 먼저 세션 기록을 복원
+                    if (window.sessionManager) {
+                        const allMessages = window.sessionManager.getChatHistory();
+                        console.log('복원할 메시지 수:', allMessages.length);
+                        if (allMessages.length > 0) {
+                            window.portfolioApp.restoreChatHistory(allMessages);
+                        }
+                    }
+
+                    // 채팅 기능 재초기화
+                    window.portfolioApp.reinitializeChat();
+
+                    // 승인 시스템 재초기화
+                    if (!window.approvalSystem) {
+                        console.log('승인 시스템 재생성');
+                        window.approvalSystem = new ApprovalSystem();
+                    } else {
+                        console.log('승인 시스템이 이미 존재함');
+                    }
+
+                    console.log('메인 페이지 채팅 기능 재초기화 완료');
+                } else {
+                    console.error('portfolioApp이 존재하지 않습니다');
+                }
             }, 50);
         }, 300);
     }

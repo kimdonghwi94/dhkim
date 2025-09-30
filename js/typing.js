@@ -1,6 +1,6 @@
 class TypingAnimation {
     constructor() {
-        this.welcomeMessage = "김동휘 포트폴리오";
+        this.welcomeMessage = "김동휘 웹 페이지";
         this.instructionText = "궁금한 내용을 입력해주세요";
         this.currentStep = 0;
     }

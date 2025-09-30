@@ -5,6 +5,11 @@ class PortfolioApp {
         this.apiEndpoint = 'http://localhost:8000/agent/chat'; // Proxy 서버 엔드포인트 설정
         this.isProcessing = false;
         this.isChatExpanded = false;
+
+        // 이벤트 핸들러 참조 초기화
+        this.chatInputHandler = null;
+        this.userInputHandler = null;
+
         this.init();
     }
 
@@ -39,27 +44,90 @@ class PortfolioApp {
         // 채팅 관련 이벤트 리스너 설정
         this.setupEventListeners();
         this.isInitialized = true;
+
+        // 새로고침이 아닌 경우에만 채팅 기록 복원
+        const isPageRefresh = performance.navigation.type === performance.navigation.TYPE_RELOAD ||
+                             performance.getEntriesByType('navigation')[0]?.type === 'reload';
+
+        if (!isPageRefresh && window.sessionManager) {
+            const existingMessages = window.sessionManager.getChatHistory();
+            if (existingMessages.length > 0) {
+                console.log('기존 채팅 기록 복원 중:', existingMessages.length, '개 메시지');
+                this.restoreChatHistory(existingMessages);
+            }
+        } else if (isPageRefresh) {
+            console.log('새로고침 감지됨 - 채팅 기록 복원 안함');
+            // 새로고침 시에는 채팅창 클리어
+            this.clearAllChatMessages();
+
+            // 추가적으로 내부 배열도 완전히 초기화
+            this.chatMessages = [];
+
+            // DOM에서도 모든 메시지 제거
+            setTimeout(() => {
+                this.clearAllChatMessages();
+            }, 100);
+        }
+    }
+
+    // 모든 채팅 메시지 클리어
+    clearAllChatMessages() {
+        // 메인 페이지 채팅 메시지 클리어
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.innerHTML = '';
+        }
+
+        // 플로팅 채팅 메시지 클리어
+        const floatingChatMessages = document.querySelector('#chat-container .chat-messages');
+        if (floatingChatMessages) {
+            floatingChatMessages.innerHTML = '';
+        }
+
+        // 내부 메시지 배열도 클리어
+        this.chatMessages = [];
+
+        console.log('모든 채팅 메시지 클리어됨');
     }
 
     setupEventListeners() {
-        // 엔터키로 메시지 전송
+        console.log('setupEventListeners 호출됨');
+
+        // 기존 이벤트 리스너 제거 후 재설정
         const chatInput = document.getElementById('chat-input');
         const userInput = document.getElementById('user-input');
 
+        console.log('chatInput 존재:', !!chatInput);
+        console.log('userInput 존재:', !!userInput);
+
         if (chatInput) {
-            chatInput.addEventListener('keypress', (e) => {
+            // 기존 이벤트 리스너 제거
+            chatInput.removeEventListener('keypress', this.chatInputHandler);
+
+            // 새 이벤트 리스너 추가
+            this.chatInputHandler = (e) => {
+                console.log('chatInput keypress 이벤트 발생:', e.key);
                 if (e.key === 'Enter') {
                     this.sendChatMessage();
                 }
-            });
+            };
+            chatInput.addEventListener('keypress', this.chatInputHandler);
+            console.log('chatInput 이벤트 리스너 설정 완료');
         }
 
         if (userInput) {
-            userInput.addEventListener('keypress', (e) => {
+            // 기존 이벤트 리스너 제거
+            userInput.removeEventListener('keypress', this.userInputHandler);
+
+            // 새 이벤트 리스너 추가
+            this.userInputHandler = (e) => {
+                console.log('userInput keypress 이벤트 발생:', e.key);
                 if (e.key === 'Enter') {
                     this.handleUserInput();
                 }
-            });
+            };
+            userInput.addEventListener('keypress', this.userInputHandler);
+            console.log('userInput 이벤트 리스너 설정 완료');
         }
     }
 
@@ -74,13 +142,22 @@ class PortfolioApp {
     }
 
     async handleUserInput() {
+        console.log('handleUserInput 호출됨!');
         const input = document.getElementById('user-input');
+        console.log('input 요소:', input);
         const userMessage = input.value.trim();
+        console.log('사용자 메시지:', userMessage);
+        console.log('처리 중 상태:', this.isProcessing);
 
-        if (!userMessage || this.isProcessing) return;
+        if (!userMessage || this.isProcessing) {
+            console.log('처리 중이거나 메시지가 없음');
+            return;
+        }
 
         // 서버 연결 상태 확인
-        if (!this.checkServerConnection()) return;
+        if (!this.checkServerConnection()) {
+            return;
+        }
 
         // 채팅창 확장 (처음 메시지일 때)
         if (!this.isChatExpanded) {
@@ -107,6 +184,9 @@ class PortfolioApp {
     async processUserQueryWithAI(query) {
         this.isProcessing = true;
 
+        let result = null;
+        let aiMessageId = null;
+
         // 세션에 사용자 메시지 기록
         if (window.sessionManager) {
             window.sessionManager.addMessage('user', query, {
@@ -119,15 +199,13 @@ class PortfolioApp {
         this.showTypingIndicator();
 
         try {
-            let result;
-
             if (!window.proxyAPI || !window.proxyAPI.isConnected) {
                 // 서버 연결 실패시
                 throw new Error('서버에 연결되지 않았습니다');
             }
 
             // AI 응답 메시지 미리 추가 (빈 메시지)
-            const aiMessageId = this.addChatMessage('ai', '', false);
+            aiMessageId = this.addChatMessage('ai', '', false);
 
             // Proxy API를 통한 실제 처리
             result = await window.proxyAPI.processStreamingQuery(query, {
@@ -143,6 +221,12 @@ class PortfolioApp {
             // AI 응답 처리
             await this.handleAIResult(result, query);
 
+            // 결과가 비어있다면 fallback이 실행된 것이므로 결과 확인
+            if (result && result.text && aiMessageId) {
+                // 메시지 업데이트
+                this.updateChatMessage(aiMessageId, result.text);
+            }
+
         } catch (error) {
             this.hideTypingIndicator();
             // 연결 실패시 사용자에게 명확한 안내
@@ -152,20 +236,18 @@ class PortfolioApp {
             // 항상 처리 상태 해제
             this.isProcessing = false;
         }
-
-        // 결과가 비어있다면 fallback이 실행된 것이므로 결과 확인
-        if (result && result.text) {
-            // 메시지 업데이트
-            this.updateChatMessage(aiMessageId, result.text);
-        }
     }
 
     async handleAIResult(result, originalQuery) {
+        console.log('handleAIResult 호출됨:', result);
         // AI 응답은 이미 processUserQueryWithAI에서 스트리밍으로 처리됨
         // 여기서는 세션 기록과 액션 처리만 수행
         if (result.text) {
+            console.log('AI 응답 텍스트 처리 중:', result.text.substring(0, 100) + '...');
+
             // 최종 메시지에 시간 추가
             const messageElements = document.querySelectorAll('.chat-message.ai');
+            console.log('AI 메시지 요소 개수:', messageElements.length);
             if (messageElements.length > 0) {
                 const lastMessage = messageElements[messageElements.length - 1];
                 if (lastMessage && lastMessage.id) {
@@ -185,19 +267,37 @@ class PortfolioApp {
 
         // 액션 처리
         if (result.actions && result.actions.length > 0) {
+            console.log('액션 처리 시작. 액션 개수:', result.actions.length);
+            console.log('액션 목록:', result.actions);
             try {
                 for (const action of result.actions) {
+                    console.log('액션 처리 중:', action);
                     await this.handleActionWithApproval(action, result.text, originalQuery);
                 }
             } catch (actionError) {
+                console.error('액션 처리 중 에러:', actionError);
                 // 액션 처리 중 에러가 발생해도 전체 프로세스는 계속 진행
             }
+        } else {
+            console.log('처리할 액션이 없습니다. result.actions:', result.actions);
         }
     }
 
     async handleActionWithApproval(action, aiResponse, originalQuery) {
+        console.log('handleActionWithApproval 호출됨:', action);
+        console.log('approvalSystem 존재 여부:', !!window.approvalSystem);
+        console.log('approvalSystem 상태:', window.approvalSystem);
+
         try {
             if (action.requires_approval !== false) {
+                console.log('승인이 필요한 액션입니다. 승인 요청 중...');
+
+                // 승인 시스템이 없으면 강제로 재생성
+                if (!window.approvalSystem) {
+                    console.warn('승인 시스템이 없어서 재생성합니다');
+                    window.approvalSystem = new ApprovalSystem();
+                }
+
                 // 사용자 승인 요청
                 const approval = await window.approvalSystem.requestApproval(
                     action.type,
@@ -205,17 +305,20 @@ class PortfolioApp {
                     aiResponse,
                     { originalQuery, timestamp: Date.now() }
                 );
+                console.log('승인 결과:', approval);
 
                 if (approval.approved) {
+                    console.log('액션이 승인되었습니다. 실행 중...');
                     await this.executeAction(action);
-                } else {
                 }
             } else {
+                console.log('승인 없이 즉시 실행');
                 // 승인 없이 즉시 실행
                 await this.executeAction(action);
             }
         } catch (error) {
-            
+            console.error('handleActionWithApproval 에러:', error);
+
             if (error.message.includes('취소')) {
                 this.showTemporaryMessage('작업이 취소되었습니다.', 'ai-message');
             } else {
@@ -385,17 +488,23 @@ class PortfolioApp {
     async sendChatMessage() {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
-        
+
         if (!message) return;
 
-        // 서버 연결 상태 확인
-        if (!window.proxyAPI || !window.proxyAPI.isConnected) {
-            this.addChatMessage('ai', '서버에 연결되지 않아 응답을 생성할 수 없습니다.');
-            return;
+        // 플로팅 채팅 메시지 컨테이너 확인
+        let messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) {
+            messagesContainer = document.querySelector('#chat-container .chat-messages');
         }
 
-        // 채팅 메시지 추가
-        this.addChatMessage('user', message);
+        // 서버 연결 상태 확인 (일단 스킵하고 로컬 명령어 처리)
+        // if (!window.proxyAPI || !window.proxyAPI.isConnected) {
+        //     this.addFloatingChatMessage('ai', '서버에 연결되지 않아 응답을 생성할 수 없습니다.');
+        //     return;
+        // }
+
+        // 채팅 메시지 추가 - 플로팅 채팅용 함수 사용
+        this.addFloatingChatMessage('user', message);
         
         // 세션에 기록 (현재 페이지 정보 포함)
         if (window.sessionManager) {
@@ -424,9 +533,9 @@ class PortfolioApp {
                 chatContext: true
             });
 
-            // AI 응답 표시
+            // AI 응답 표시 - 플로팅 채팅용 함수 사용
             if (result.text) {
-                this.addChatMessage('ai', result.text);
+                this.addFloatingChatMessage('ai', result.text);
                 
                 // 세션에 AI 응답 기록
                 if (window.sessionManager) {
@@ -439,12 +548,11 @@ class PortfolioApp {
                 }
             }
 
-            // 액션 처리 (플로팅 채팅에서는 승인 없이 실행)
+            // 액션 처리 (플로팅 채팅에서도 승인 요청)
             if (result.actions && result.actions.length > 0) {
                 for (const action of result.actions) {
-                    // 플로팅 채팅에서는 자동 승인
-                    action.requires_approval = false;
-                    await this.executeAction(action);
+                    // 플로팅 채팅에서도 승인이 필요한 경우 승인 요청
+                    await this.handleActionWithApproval(action, result.text, message);
                 }
             }
 
@@ -455,7 +563,14 @@ class PortfolioApp {
 
     // 채팅 히스토리 로드 (세션에서)
     loadChatHistory(messages) {
-        const messagesContainer = document.getElementById('chat-messages');
+        // 플로팅 채팅 메시지 컨테이너 찾기
+        let messagesContainer = document.getElementById('chat-messages');
+
+        // 메인 페이지가 아닌 경우 (플로팅 채팅)
+        if (!messagesContainer) {
+            messagesContainer = document.querySelector('#chat-container .chat-messages');
+        }
+
         if (!messagesContainer) return;
 
         // 기존 메시지 클리어
@@ -464,7 +579,7 @@ class PortfolioApp {
         // 메시지 추가
         messages.forEach(msg => {
             const sender = msg.sender === 'user' ? 'user' : 'ai';
-            this.addChatMessage(sender, msg.content, false); // 스크롤 없이 추가
+            this.addFloatingChatMessage(sender, msg.content, false); // 플로팅 채팅 메시지 추가 함수 사용
         });
 
         // 마지막에 스크롤
@@ -474,12 +589,61 @@ class PortfolioApp {
 
     }
 
-    addChatMessage(sender, message, autoScroll = true) {
-        const messagesContainer = document.getElementById('chat-messages');
+    // 메인 페이지 채팅창에 전체 대화 기록 복원
+    restoreChatHistory(messages) {
+        // 메인 페이지의 중앙 채팅창 컨테이너
+        const messagesContainer = document.getElementById('chat-messages-list');
+        if (!messagesContainer) return;
+
+        // 기존 메시지 클리어
+        messagesContainer.innerHTML = '';
+
+        // 메시지 추가
+        messages.forEach(msg => {
+            const sender = msg.sender === 'user' ? 'user' : 'ai';
+            this.addChatMessage(sender, msg.content, false); // 중앙 채팅창용 함수 사용, 시간 표시 없음
+        });
+
+        // 마지막에 스크롤
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+    }
+
+    // 채팅 기능 재초기화 (메인 페이지로 돌아올 때)
+    reinitializeChat() {
+        console.log('=== 채팅 기능 재초기화 시작 ===');
+
+        const userInput = document.getElementById('user-input');
+        console.log('user-input 요소 존재:', !!userInput);
+
+        // 이벤트 리스너 재설정
+        this.setupEventListeners();
+
+        // 처리 상태 초기화
+        this.isProcessing = false;
+        this.isChatExpanded = false;
+
+        // 로딩 상태 해제 (입력 필드 활성화)
+        this.setLoadingState(false);
+
+        console.log('=== 채팅 기능 재초기화 완료 ===');
+    }
+
+    addFloatingChatMessage(sender, message, autoScroll = true) {
+        // 플로팅 채팅 메시지 컨테이너 찾기
+        let messagesContainer = document.getElementById('chat-messages');
+
+        // 메인 페이지가 아닌 경우 (플로팅 채팅)
+        if (!messagesContainer) {
+            messagesContainer = document.querySelector('#chat-container .chat-messages');
+        }
+
         if (!messagesContainer) return;
 
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${sender}`;
+        // 메인 채팅창과 동일한 클래스 구조 사용
+        messageDiv.className = `chat-message ${sender}`;
 
         const messageStyle = sender === 'user'
             ? 'background: #667eea; color: white; margin-left: 20px; border-radius: 15px 15px 5px 15px;'
@@ -500,6 +664,7 @@ class PortfolioApp {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     }
+
 
 
     openChat() {
