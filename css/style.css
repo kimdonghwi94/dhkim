@@ -732,6 +732,7 @@ body.dark-mode .theme-toggle .moon-icon {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: calc(100vh - 120px);
     overflow-y: auto;
+    overflow-x: visible;
     z-index: 1000;
 }
 
@@ -898,6 +899,7 @@ body.dark-mode .theme-toggle .moon-icon {
     transition: all 0.2s ease;
     font-size: 12px;
     position: relative;
+    overflow: visible;
 }
 
 .tool-item:hover {
@@ -938,10 +940,10 @@ body.dark-mode .theme-toggle .moon-icon {
     transform: translateX(-50%);
     background: rgba(17, 24, 39, 0.95);
     color: #f3f4f6;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border-radius: 8px;
     font-size: 12px;
-    white-space: nowrap;
+    line-height: 1.4;
     opacity: 0;
     visibility: hidden;
     transition: all 0.2s ease;
@@ -950,8 +952,10 @@ body.dark-mode .theme-toggle .moon-icon {
     margin-bottom: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    max-width: 250px;
+    min-width: 200px;
+    max-width: 350px;
     white-space: normal;
+    word-wrap: break-word;
 }
 
 .tool-tooltip::after {
@@ -2934,32 +2938,32 @@ body.dark-mode .post-body a:hover {
     .editor-content {
         min-height: 400px;
     }
-    
+
     .markdown-editor {
         height: 400px;
         padding: 16px;
         font-size: 0.95em;
     }
-    
+
     .preview-content {
         padding: 16px;
         min-height: 360px;
     }
-    
+
     .post-viewer {
         padding: 20px 16px;
     }
-    
+
     .post-header {
         flex-direction: column;
         gap: 16px;
         align-items: stretch;
     }
-    
+
     .post-content .post-title {
         font-size: 2em;
     }
-    
+
     .post-content .post-meta {
         flex-direction: column;
         gap: 8px;
@@ -3408,12 +3412,14 @@ body.dark-mode .server-item.server-disabled .server-url {
 .agent-tools {
     padding: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: visible;
 }
 
 .tools-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow: visible;
 }
 
 /* Agent 계층 구조 스타일 */

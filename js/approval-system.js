@@ -93,7 +93,6 @@ class ApprovalSystem {
         // AI 메시지 찾기
         const aiMessage = document.querySelector('.ai-message');
         if (!aiMessage) {
-            console.warn('AI 메시지를 찾을 수 없어 폴백 모드 사용');
             this.showCompactApproval(actionId, actionType, actionParams, aiResponse);
             return;
         }
@@ -231,7 +230,6 @@ class ApprovalSystem {
         }
         
         if (!actionId || !this.pendingActions.has(actionId)) {
-            console.error('승인할 액션을 찾을 수 없습니다:', actionId);
             return;
         }
 
@@ -246,8 +244,6 @@ class ApprovalSystem {
             });
         }
 
-        console.log('액션 승인됨:', action);
-        
         // Promise resolve
         action.resolve({
             approved: true,
@@ -285,8 +281,6 @@ class ApprovalSystem {
                 });
             }
 
-            console.log('액션 취소됨:', action);
-            
             // Promise reject
             action.reject(new Error('사용자가 액션을 취소했습니다.'));
             

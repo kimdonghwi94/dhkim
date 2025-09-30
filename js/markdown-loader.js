@@ -144,7 +144,6 @@ class MarkdownLoader {
             
             if (!response || !response.ok) {
                 // 모든 경로 실패 시 기본 내용 반환
-                console.warn(`Cannot load ${filename}.md - using default content`);
                 return this.getDefaultContent(filename);
             }
             
@@ -156,7 +155,6 @@ class MarkdownLoader {
             
             return htmlContent;
         } catch (error) {
-            console.error(`Error loading ${filename}.md:`, error);
             return this.getDefaultContent(filename);
         }
     }

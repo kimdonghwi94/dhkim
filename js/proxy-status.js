@@ -338,7 +338,10 @@ class ProxyStatusManager {
     renderTool(tool, agentId) {
         const description = tool.description || `${tool.name} 기능`;
         return `
-            <div class="tool-item ${tool.enabled ? '' : 'disabled'}" data-tooltip="${description.replace(/"/g, '&quot;')}">
+            <div class="tool-item ${tool.enabled ? '' : 'disabled'}" 
+                 data-tooltip="${description.replace(/"/g, '&quot;')}"
+                 onmouseenter="adjustTooltipPosition(this)"
+                 onmouseleave="resetTooltipPosition(this)">
                 <div class="tool-info">
                     <span class="tool-name">${tool.name}</span>
                 </div>
@@ -687,6 +690,47 @@ function clearAgentStates() {
     if (window.proxyStatusManager) {
         window.proxyStatusManager.clearServerStates();
     }
+}
+
+// 툴팁 위치 조정 함수
+function adjustTooltipPosition(element) {
+    const tooltip = element.querySelector('.tool-tooltip');
+    if (!tooltip) return;
+    
+    // 툴팁 표시 전 위치 계산
+    setTimeout(() => {
+        const rect = tooltip.getBoundingClientRect();
+        const parentRect = element.getBoundingClientRect();
+        const panelRect = document.querySelector('.proxy-panel').getBoundingClientRect();
+        
+        // 툴팁이 패널 좌측 경계를 벗어나는 경우
+        if (rect.left < panelRect.left + 10) {
+            tooltip.style.left = '10px';
+            tooltip.style.transform = 'translateX(0) translateY(-4px)';
+        }
+        // 툴팁이 패널 우측 경계를 벗어나는 경우
+        else if (rect.right > panelRect.right - 10) {
+            tooltip.style.left = 'auto';
+            tooltip.style.right = '10px';
+            tooltip.style.transform = 'translateX(0) translateY(-4px)';
+        }
+        // 기본 중앙 정렬
+        else {
+            tooltip.style.left = '50%';
+            tooltip.style.right = 'auto';
+            tooltip.style.transform = 'translateX(-50%) translateY(-4px)';
+        }
+    }, 10);
+}
+
+// 툴팁 위치 초기화 함수
+function resetTooltipPosition(element) {
+    const tooltip = element.querySelector('.tool-tooltip');
+    if (!tooltip) return;
+    
+    tooltip.style.left = '50%';
+    tooltip.style.right = 'auto';
+    tooltip.style.transform = 'translateX(-50%)';
 }
 
 // 전역 Proxy Status Manager 인스턴스

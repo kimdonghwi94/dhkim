@@ -1,7 +1,7 @@
 class ProxyAPI {
     constructor() {
         // Proxy 서버 기본 엔드포인트 설정
-        this.baseEndpoint = 'http://192.168.0.49:8000/api';
+        this.baseEndpoint = 'https://agent-gateway-1092310008847.asia-northeast3.run.app/api';
         this.isConnected = false;
         this.agents = [];
         this.currentSessionId = null;
@@ -64,7 +64,7 @@ class ProxyAPI {
             } else {
                 this.isConnected = false;
             }
-            
+
             return this.isConnected;
         } catch (error) {
             this.isConnected = false;
@@ -77,7 +77,7 @@ class ProxyAPI {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
-            
+
             const response = await fetch(`${this.baseEndpoint}/agent/list`, {
                 method: 'GET',
                 signal: controller.signal
@@ -87,25 +87,24 @@ class ProxyAPI {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log(data)
                 this.agents = data.agents || [];
-                
+
                 // 상태 매니저 업데이트
                 if (window.proxyStatusManager) {
                     window.proxyStatusManager.updateAgentList();
                 }
-                
+
                 return data;
             } else {
                 throw new Error(`에이전트 목록 로드 실패: ${response.status}`);
             }
         } catch (error) {
             this.agents = [];
-            
+
             if (window.proxyStatusManager) {
                 window.proxyStatusManager.updateAgentList();
             }
-            
+
             return {
                 agents: [],
                 total: 0,
@@ -242,7 +241,7 @@ class ProxyAPI {
                                     onStream(data.content, fullResponse);
                                 }
                                 break;
-                            
+
                             case 'action':
                                 actions.push({
                                 type: data.action,
@@ -383,7 +382,7 @@ class ProxyAPI {
 
     // 폴백 처리 (Proxy 서버 연결 실패시)
     async fallbackProcessing(userQuery, context = {}) {
-        
+
         const lowerQuery = userQuery.toLowerCase();
         let response = '';
         let actions = [];
@@ -427,7 +426,7 @@ class ProxyAPI {
         if (context.onStream) {
             const words = response.split(' ');
             let currentText = '';
-            
+
             for (const word of words) {
                 currentText += word + ' ';
                 context.onStream(word + ' ', currentText.trim());
@@ -462,7 +461,6 @@ class ProxyAPI {
             return result.valid === true;
 
         } catch (error) {
-            console.warn('API 키 검증 실패:', error.message);
             return false;
         }
     }
@@ -475,9 +473,9 @@ class ProxyAPI {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
-                    post_id: postId, 
-                    password: password 
+                body: JSON.stringify({
+                    post_id: postId,
+                    password: password
                 })
             });
 
@@ -489,7 +487,6 @@ class ProxyAPI {
             return result.valid === true;
 
         } catch (error) {
-            console.warn('비밀번호 검증 실패:', error.message);
             return false;
         }
     }

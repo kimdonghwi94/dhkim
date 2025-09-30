@@ -23,7 +23,6 @@ class NavigationSystem {
 
     navigateToPage(pageName) {
         if (!this.pages[pageName]) {
-            console.error(`페이지 '${pageName}'을 찾을 수 없습니다.`);
             return;
         }
 
@@ -49,7 +48,6 @@ class NavigationSystem {
             } else if (this.pages[pageName].isMarkdown) {
                 // 마크다운 페이지는 마크다운 로더 사용 (관리자 버튼 포함)
                 if (window.markdownLoader) {
-                    console.log(`네비게이션: ${pageName} 페이지 로드 중...`);
                     pageBody.innerHTML = await window.markdownLoader.getPageContent(pageName);
                 } else {
                     pageBody.innerHTML = `<h1>로딩 중...</h1><p>마크다운 로더를 불러오는 중입니다.</p>`;
