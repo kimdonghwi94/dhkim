@@ -128,7 +128,7 @@ class ProxyAPI {
                     dark_mode: document.body.classList.contains('dark-mode'),
                     ...context
                 },
-                user_id: userId || this.generateUserId()
+                user_id: userId || window.sessionManager?.sessionId || this.generateUserId()
             };
 
             const response = await fetch(`${this.baseEndpoint}/agent/chat`, {
