@@ -1,7 +1,7 @@
 class ProxyAPI {
     constructor() {
         // Proxy 서버 기본 엔드포인트 설정
-        this.baseEndpoint = 'https://agent-gateway-1092310008847.asia-northeast3.run.app/api';
+        this.baseEndpoint = 'http://192.168.55.21:8000/api';
         this.isConnected = false;
         this.agents = [];
         this.currentSessionId = null;
@@ -297,11 +297,28 @@ class ProxyAPI {
             // 60초 타임아웃
             setTimeout(() => {
                 eventSource.close();
-                const timeoutError = new Error('응답 시간 초과');
-                if (onError) {
-                    onError(timeoutError);
+
+                // 타임아웃 시 사용자에게 부분 응답 제공
+                if (fullResponse && fullResponse.trim()) {
+                    // 부분 응답이 있는 경우
+                    const result = {
+                        text: fullResponse + '\n\n⚠️ 응답이 너무 길어 중단되었습니다. 더 구체적인 질문으로 다시 시도해주세요.',
+                        actions: actions,
+                        metadata: { ...metadata, timeout: true },
+                        task_id: taskId
+                    };
+                    if (onComplete) {
+                        onComplete(result);
+                    }
+                    resolve(result);
+                } else {
+                    // 응답이 없는 경우
+                    const timeoutError = new Error('응답 생성 시간이 초과되었습니다. 질문을 더 간단하게 해주시거나 나중에 다시 시도해주세요.');
+                    if (onError) {
+                        onError(timeoutError);
+                    }
+                    reject(timeoutError);
                 }
-                reject(timeoutError);
             }, 60000);
         });
     }
